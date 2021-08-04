@@ -7,7 +7,7 @@ This is based on [rpgfreeweb](https://github.com/worksofliam/rpgfreeweb).
 
 ### Install from Marketplace
 
-coming soon
+[You can find the extension in the VS Code Marketplace!](https://marketplace.visualstudio.com/items?itemName=BrianJGarland.vscode-rpgfree)
 
 ### Run from local
 
