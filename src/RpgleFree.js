@@ -177,6 +177,7 @@ module.exports = class RpgleFree {
     let line, comment, isMove, hasKeywords, ignoredColumns, spec, spaces = 0;
     let result;
     let wasSub = false;
+    let fixedSql = false;
     let lastBlock = ``;
     let index = 0;
     for (index = 0; index < length; index++) {
@@ -193,6 +194,7 @@ module.exports = class RpgleFree {
       ignoredColumns = line.substr(1, 4);
   
       spec = line[6].toUpperCase();
+
       switch (line[7]) {
       case `/`:
         spec = ``;
@@ -202,6 +204,14 @@ module.exports = class RpgleFree {
         case `END-FREE`:
           this.lines.splice(index, 1);
           index--;
+          break;
+        case `EXEC SQL`:
+          fixedSql = true;
+          this.lines[index] = ``;
+          break;
+        case `END-EXEC`:  
+          fixedSql = false;
+          this.lines[index] = ``.padEnd(8) + `;`;
           break;
         default:
           this.lines[index] = ``.padEnd(8) + ``.padEnd(spaces) + line.substr(7).trim();
@@ -216,6 +226,10 @@ module.exports = class RpgleFree {
           this.lines[index] = ``.padEnd(8) + ``.padEnd(spaces) + `//` + comment;
         else
           this.lines[index] = ``;
+        break;
+      case `+`:
+        if (fixedSql)
+          this.lines[index] = ``.padEnd(7) + line.substr(8);
         break;
       }
   
