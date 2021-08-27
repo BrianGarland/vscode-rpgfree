@@ -29,6 +29,8 @@ module.exports = {
     let ind2 = input.substr(73, 2).trim();
     let ind3 = input.substr(75, 2).trim();
 
+    let period = ``;
+
     let condition = {
       not: (input.substr(9, 1).toUpperCase() === `N`),
       ind: input.substr(10, 2).trim()
@@ -339,12 +341,6 @@ module.exports = {
       else
         output.value = opcode + ` ` + factor1 + ` ` + factor2;
       break;
-    case `SORTA`:
-      output.value = opcode + ` ` + extended;
-      break;
-    case `SUB`:
-      output.value = result + ` = ` + factor1 + ` - ` + factor2;
-      break;
     case `SETOFF`:
       if (ind1 != ``) arrayoutput.push(`*In` + ind1 + ` = *Off;`);
       if (ind2 != ``) arrayoutput.push(`*In` + ind2 + ` = *Off;`);
@@ -355,6 +351,65 @@ module.exports = {
       if (ind2 != ``) arrayoutput.push(`*In` + ind2 + ` = *On;`);
       if (ind3 != ``) arrayoutput.push(`*In` + ind3 + ` = *On;`);
       break;
+    case `SORTA`:
+      output.value = opcode + ` ` + extended;
+      break;
+    case `SUB`:
+      output.value = result + ` = ` + factor1 + ` - ` + factor2;
+      break;
+    case `ADDDUR`:
+      // We are adding a duration to a date
+      switch (factor2.split(`:`)[1]) {
+      case `*DAYS`:
+      case `*DAY`:
+      case `*D`:
+        period = `%DAYS`;
+        break;
+      case `*MONTHS`:
+      case `*MONTH`:
+      case `*M`:
+        period = `%MONTHS`;
+        break;
+      case `*YEARS`:
+      case `*YEAR`:
+      case `*Y`:
+        period = `%YEARS`;        
+        break;
+      }
+      if (factor1)
+        output.value = result + ` = ` + factor1 + ` + ` + period + `(` + factor2.split(`:`)[0] + `)`;
+      else
+        output.value = result + ` += ` + period + `(` + factor2.split(`:`)[0] + `)`;
+      break;
+    case `SUBDUR`:
+      // If factor2 has a : then it is a duration and we are doing subtacting a duriation from a date
+      if (factor2.includes(`:`)) {
+        switch (factor2.split(`:`)[1]) {
+        case `*DAYS`:
+        case `*DAY`:
+        case `*D`:
+          period = `%DAYS`;
+          break;
+        case `*MONTHS`:
+        case `*MONTH`:
+        case `*M`:
+          period = `%MONTHS`;
+          break;
+        case `*YEARS`:
+        case `*YEAR`:
+        case `*Y`:
+          period = `%YEARS`;        
+          break;
+        }
+        if (factor1)
+          output.value = result + ` = ` + factor1 + ` - ` + period + `(` + factor2.split(`:`)[0] + `)`;
+        else
+          output.value = result + ` -= ` + period + `(` + factor2.split(`:`)[0] + `)`;
+      }
+      // If factor2 doesn't have a duration then we are finding the duration between two dates 
+      else       
+        output.value = result.split(`:`)[0] + ` = %DIFF(` + factor1 + `:` + factor2 + `:` + result.split(`:`)[1] + `)`;
+      break;         
     case `SUBST`:
       if (factor2.indexOf(`:`) >= 0) {
         sep = factor2.split(`:`)[1];
