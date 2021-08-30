@@ -30,6 +30,10 @@ module.exports = {
     let decimals = input.substr(41, 3).trim();
     let field = input.substr(24, 2).trim().toUpperCase();
     let keywords = input.substr(44).trim();
+    let doCheck = false;
+    let doneCheck = false;
+    let extname = -1;
+    let tempkeywords = ``;
 
     output.var.standalone = (field === `S`);
     output.var.name = name;
@@ -162,8 +166,31 @@ module.exports = {
         if (keywords.toUpperCase().indexOf(`LIKEDS`) === -1)
           DSisLIKEDS = false;
 
-        if (name == ``) name = `*N`;
+        if (name == ``) 
+          name = `*N`;
+
         isSubf = (field == `DS`);
+
+        // if keywords contain 'EXTNAME' add apostrophes around name
+        extname = keywords.toUpperCase().indexOf(`EXTNAME`);
+        if (extname != -1) {
+          tempkeywords = keywords;
+          keywords = ``;
+          for (var i = 0; i < tempkeywords.length; i++) {
+            if (i > extname && !doneCheck)
+              doCheck = true; 
+            if (doCheck && tempkeywords.substr(i,1) == `)`) {
+              keywords += `'`;
+              doCheck = false;
+              doneCheck = true;
+            }
+            keywords += tempkeywords.substr(i,1);
+            if (doCheck && tempkeywords.substr(i,1) == `(`)
+              keywords += `'`;
+
+          }  
+        }
+
         output.value = `Dcl-` + field + ` ` + name + ` ` + type + ` ` + keywords;
 
 	      if (DSisLIKEDS = false) {
