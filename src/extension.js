@@ -14,8 +14,9 @@ function RpgleFree() {
 
   // Get the selected text from the editor and break into an array 
   const editor = vscode.window.activeTextEditor;
+  const eol = editor.document.eol === 1 ? '\n' : '\r\n';
   let text = editor.document.getText(editor.selection);
-  let lines = text.split(/\n/);
+  let lines = text.split(eol);
 
   // Start with the indent value being a constant
   // We'll add a configuration setting for this in the future
@@ -27,7 +28,7 @@ function RpgleFree() {
 
   let curRange = new vscode.Range(editor.selection.start, editor.selection.end);
   editor.edit(editBuilder => {
-    editBuilder.replace(curRange,lines.join(`\n`));
+    editBuilder.replace(curRange,lines.join(eol));
   });
   
   vscode.window.showInformationMessage(`Selected text converted to free format`);

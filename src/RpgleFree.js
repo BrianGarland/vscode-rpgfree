@@ -174,8 +174,8 @@ module.exports = class RpgleFree {
   
   parse() {
     let length = this.lines.length;
-    let line, comment, isMove, hasKeywords, ignoredColumns, spec, spaces = 0;
-    let result;
+    let line, nextline, comment, isMove, hasKeywords, ignoredColumns, spec, spaces = 0;
+    let result, testForEnd;
     let wasSub = false;
     let fixedSql = false;
     let lastBlock = ``;
@@ -191,7 +191,15 @@ module.exports = class RpgleFree {
         line = line.substr(0, 81);
         comment = this.lines[index].substr(80);
       }
+
       ignoredColumns = line.substr(1, 4);
+      
+      if (this.lines[index+1]) {
+        nextline = ` ` + this.lines[index+1].padEnd(80);
+        if (nextline.length > 81) 
+          nextline = nextline.substr(0, 81);
+      } else
+        nextline = ``;
   
       spec = line[6].toUpperCase();
 
@@ -207,14 +215,14 @@ module.exports = class RpgleFree {
           break;
         case `EXEC SQL`:
           fixedSql = true;
-          this.lines[index] = ``;
+          this.lines[index] = ``.padEnd(7) + line.substr(8).trim();
           break;
         case `END-EXEC`:  
           fixedSql = false;
-          this.lines[index] = ``.padEnd(8) + `;`;
+          this.lines[index] = ``;
           break;
         default:
-          this.lines[index] = ``.padEnd(8) + ``.padEnd(spaces) + line.substr(7).trim();
+          this.lines[index] = ``.padEnd(7) + ``.padEnd(spaces) + line.substr(7).trim();
           break;
         }
         break;
@@ -228,9 +236,15 @@ module.exports = class RpgleFree {
           this.lines[index] = ``;
         break;
       case `+`:
+        spec = ``;
+        
         if (fixedSql)
-          this.lines[index] = ``.padEnd(7) + line.substr(8);
-        break;
+          testForEnd = nextline.substr(7).trim().toUpperCase();
+          if (testForEnd == `/END-EXEC`)
+            this.lines[index] = ``.padEnd(7) + line.substr(8).replace(/\s+$/g,``) + `;`;
+          else
+            this.lines[index] = ``.padEnd(7) + line.substr(8);
+          break;
       }
   
       if (specs[spec] !== undefined) {
