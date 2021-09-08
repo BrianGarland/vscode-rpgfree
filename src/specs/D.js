@@ -23,7 +23,7 @@ module.exports = {
     };
 
     let potentialName = input.substr(7).trim();
-    let name = input.substr(7, 14).trim();
+    let name = input.substr(7, 15).trim();
     let pos = input.substr(30, 3).trim();
     let len = input.substr(33, 7).trim();
     let type = input.substr(40, 1).trim();
@@ -159,6 +159,9 @@ module.exports = {
       case `PI`:
         if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `S`)
           keywords = `PSDS ` + keywords;
+
+        if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `U`)
+          keywords = `DTAARA(*AUTO) ` + keywords;
 
         if (keywords.toUpperCase().indexOf(`QUALIFIED`) === -1)
           DSisQualified = false;

@@ -1,4 +1,4 @@
-let Lastkey = ``;
+let LastKey = ``;
 let Lists = {};
 
 let EndList = [];
@@ -47,7 +47,7 @@ module.exports = {
     switch (plainOp) {
     case `PLIST`:
     case `KLIST`:
-      let LastKey = factor1.toUpperCase();
+      LastKey = factor1.toUpperCase();
       Lists[LastKey] = [];
       output.remove = true;
       break;
