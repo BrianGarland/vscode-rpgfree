@@ -207,7 +207,8 @@ module.exports = class RpgleFree {
       case `/`:
         spec = ``;
   
-        switch (line.substr(8).trim().toUpperCase()) {
+        let test = line.substr(8,8).trim().toUpperCase();
+        switch (test) {
         case `FREE`:
         case `END-FREE`:
           this.lines.splice(index, 1);
@@ -216,6 +217,11 @@ module.exports = class RpgleFree {
         case `EXEC SQL`:
           fixedSql = true;
           this.lines[index] = ``.padEnd(7) + line.substr(8).trim();
+          testForEnd = nextline.substr(7).trim().toUpperCase();
+          if (testForEnd == `/END-EXEC`)
+             this.lines[index] = ``.padEnd(7) + line.substr(8).replace(/\s+$/g,``) + `;`;
+          else
+             this.lines[index] = ``.padEnd(7) + line.substr(8);
           break;
         case `END-EXEC`:  
           fixedSql = false;
@@ -239,12 +245,12 @@ module.exports = class RpgleFree {
         spec = ``;
         
         if (fixedSql)
-          testForEnd = nextline.substr(7).trim().toUpperCase();
-          if (testForEnd == `/END-EXEC`)
-            this.lines[index] = ``.padEnd(7) + line.substr(8).replace(/\s+$/g,``) + `;`;
-          else
-            this.lines[index] = ``.padEnd(7) + line.substr(8);
-          break;
+        testForEnd = nextline.substr(7).trim().toUpperCase();
+        if (testForEnd == `/END-EXEC`)
+           this.lines[index] = ``.padEnd(7) + line.substr(8).replace(/\s+$/g,``) + `;`;
+        else
+           this.lines[index] = ``.padEnd(7) + line.substr(8);
+        break;
       }
   
       if (specs[spec] !== undefined) {
@@ -339,5 +345,7 @@ module.exports = class RpgleFree {
       }
       wasSub = false;
     }
+
   }
+  
 }
