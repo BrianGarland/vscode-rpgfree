@@ -179,6 +179,7 @@ module.exports = {
         if (extname != -1) {
           tempkeywords = keywords;
           keywords = ``;
+          output.isSub = true;
           for (var i = 0; i < tempkeywords.length; i++) {
             if (i > extname && !doneCheck)
               doCheck = true; 

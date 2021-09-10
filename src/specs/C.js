@@ -1,6 +1,7 @@
 let LastKey = ``;
 let Lists = {};
 let doingCALL = false;
+let doingENTRY = false;
 
 let EndList = [];
 
@@ -40,6 +41,7 @@ module.exports = {
     let arrayoutput = [];
 
     plainOp = opcode;
+
     if (plainOp.indexOf(`(`) >= 0) {
       plainOp = opcode.substr(0, opcode.indexOf(`(`));
       extender = opcode.substring(opcode.indexOf(`(`)+1, opcode.indexOf(`)`));
@@ -47,20 +49,26 @@ module.exports = {
 
     if (doingCALL && plainOp != `PARM`) {
       doingCALL = false;
-      output.value = LastKey + `(` + Lists[LastKey].join(`:`) + `)`;
-      return output;
+      arrayoutput.push(LastKey + `(` + Lists[LastKey].join(`:`) + `);`);
     }
+    if (doingENTRY && plainOp != `PARM`) 
+      doingENTRY = false;
 
     switch (plainOp) {
     case `PLIST`:
     case `KLIST`:
       LastKey = factor1.toUpperCase();
       Lists[LastKey] = [];
-      output.remove = true;
-      break;
+      if (plainOp == `PLIST` && factor1.toUpperCase() == `*ENTRY`) 
+        doingENTRY = true; 
+      else 
+        output.remove = true; 
+      break; 
     case `PARM`:
     case `KFLD`:
       //Handle var declaration
+      if (doingENTRY)
+        break;
       Lists[LastKey].push(result);
       output.remove = true;
       break;
@@ -83,6 +91,7 @@ module.exports = {
       break;
     case `CALL`:
       factor2 = factor2.substring(1, factor2.length-1);
+      // result may contain a PLIST name
       if (result != ``) {
         if (Lists[result.toUpperCase()])
           output.value = factor2 + `(` + Lists[result.toUpperCase()].join(`:`) + `)`;
