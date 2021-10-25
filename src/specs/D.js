@@ -173,6 +173,7 @@ module.exports = {
           name = `*N`;
 
         isSubf = (field == `DS`);
+        output.isSub = true;
 
         // if keywords contain 'EXTNAME' add apostrophes around name
         extname = keywords.toUpperCase().indexOf(`EXTNAME`);
