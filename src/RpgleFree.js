@@ -174,9 +174,10 @@ module.exports = class RpgleFree {
   
   parse() {
     let length = this.lines.length;
-    let line, comment, isMove, hasKeywords, ignoredColumns, spec, spaces = 0;
+    let line, nextline, comment, isMove, hasKeywords, ignoredColumns, spec, spaces = 0;
     let result, testForEnd;
     let wasSub = false;
+    let fixedSql = false;
     let lastBlock = ``;
     let index = 0;
     for (index = 0; index < length; index++) {
@@ -192,50 +193,142 @@ module.exports = class RpgleFree {
       }
 
       ignoredColumns = line.substr(1, 4);
+      
+      if (this.lines[index+1]) {
+        nextline = ` ` + this.lines[index+1].padEnd(80);
+        if (nextline.length > 81) 
+          nextline = nextline.substr(0, 81);
+      } else
+        nextline = ``;
   
       spec = line[6].toUpperCase();
 
-      // We want to intercept compiler directives here
-      // However embedded SQL uses /EXEC SQL and /END-EXEC which I want to go into the C-Spec routines
-      // Same with SQL continuation lines (/+)
-
       switch (line[7]) {
       case `/`:
+        spec = ``;
+  
         let test = line.substr(8,8).trim().toUpperCase();
         switch (test) {
-        case `EXEC SQL`:
-        case `END-EXEC`:  
-          break;
         case `FREE`:
         case `END-FREE`:
-          spec = ``;
           this.lines.splice(index, 1);
           index--;
           break;
+        case `EXEC SQL`:
+          fixedSql = true;
+          this.lines[index] = ``.padEnd(7) + line.substr(8).trim();
+          testForEnd = nextline.substr(7).trim().toUpperCase();
+          if (testForEnd == `/END-EXEC`)
+             this.lines[index] = ``.padEnd(7) + line.substr(8).replace(/\s+$/g,``) + `;`;
+          else
+             this.lines[index] = ``.padEnd(7) + line.substr(8);
+          break;
+        case `END-EXEC`:  
+          fixedSql = false;
+          this.lines[index] = ``;
+          break;
         default:
-          spec = ``;
           this.lines[index] = ``.padEnd(7) + ``.padEnd(spaces) + line.substr(7).trim();
           break;
         }
         break;
-
       case `*`:
         spec = ``;
+  
         comment = line.substr(8).trim();
         if (comment !== ``)
           this.lines[index] = ``.padEnd(8) + ``.padEnd(spaces) + `//` + comment;
         else
           this.lines[index] = ``;
         break;
-
       case `+`:
+        spec = ``;
+        
+        if (fixedSql)
+        testForEnd = nextline.substr(7).trim().toUpperCase();
+        if (testForEnd == `/END-EXEC`)
+           this.lines[index] = ``.padEnd(7) + line.substr(8).replace(/\s+$/g,``) + `;`;
+        else
+           this.lines[index] = ``.padEnd(7) + line.substr(8);
         break;
-
       }
   
       if (specs[spec] !== undefined) {
         result = specs[spec].Parse(line, this.indent, wasSub);
-        parseResult(result,this.lines,this.indent);
+  
+        if (result.isSub === true) {
+          wasSub = true;
+          lastBlock = result.blockType;
+            
+        } else if (result.isSub === undefined && wasSub) {
+          endBlock(this.lines,this.indent);
+        }
+  
+        if (result.var !== undefined)
+          this.addVar(result.var);
+  
+        isMove = (result.move !== undefined);
+        hasKeywords = (result.aboveKeywords !== undefined);
+  
+        if (result.message) {
+          this.messages.push(new Message(this.currentLine, result.message));
+        }
+  
+        switch (true) {
+        case isMove:
+          result = this.suggestMove(result.move);
+          if (result.change) {
+            this.lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
+          }
+          break;
+  
+        case hasKeywords:
+          let endStmti = this.lines[index - 1].indexOf(`;`);
+          let endStmt = this.lines[index - 1].substr(endStmti); //Keep those end line comments :D
+  
+          this.lines[index - 1] = this.lines[index - 1].substr(0, endStmti) + ` ` + result.aboveKeywords + endStmt;
+          this.lines.splice(index, 1);
+          index--;
+          break;
+  
+        case result.remove:
+          if (comment.trim() !== ``) {
+            this.lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + `//` + comment;
+          } else {
+            this.lines.splice(index, 1);
+            index--;
+            length++;
+          }
+          break;
+  
+        case result.change:
+          spaces += result.beforeSpaces;
+  
+          if (result.arrayoutput) {
+  
+            this.lines.splice(index, 1);
+  
+            for (let y in result.arrayoutput) {
+              result.arrayoutput[y] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.arrayoutput[y];
+  
+              this.lines.splice(index, 0, result.arrayoutput[y]);
+              index++;
+              length++;
+            }
+  
+            index--;
+  
+          } else {
+            this.lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
+            if (comment.trim() !== ``) {
+              this.lines[index] += ` //` + comment;
+            }
+          }
+              
+          spaces += result.nextSpaces;
+          break;
+        }
+  
       } else {
         if (wasSub) {
           endBlock(this.lines,this.indent);
@@ -243,86 +336,6 @@ module.exports = class RpgleFree {
       }
     }
   
-
-    function parseResult(result,lines,indent) {
-      if (result.isSub === true) {
-        wasSub = true;
-        lastBlock = result.blockType;
-          
-      } else if (result.isSub === undefined && wasSub) {
-        endBlock(lines,indent);
-      }
-
-      if (result.var !== undefined)
-        this.addVar(result.var);
-
-      isMove = (result.move !== undefined);
-      hasKeywords = (result.aboveKeywords !== undefined);
-
-      if (result.message) {
-        this.messages.push(new Message(this.currentLine, result.message));
-      }
-
-      switch (true) {
-      case isMove:
-        result = this.suggestMove(result.move);
-        if (result.change) {
-          lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
-        }
-        break;
-
-      case hasKeywords:
-        let endStmti = lines[index - 1].indexOf(`;`);
-        let endStmt = lines[index - 1].substr(endStmti); //Keep those end line comments :D
-
-        lines[index - 1] = this.lines[index - 1].substr(0, endStmti) + ` ` + result.aboveKeywords + endStmt;
-        lines.splice(index, 1);
-        index--;
-        break;
-
-      case result.remove:
-        if (comment.trim() !== ``) {
-          lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + `//` + comment;
-        } else {
-          lines.splice(index, 1);
-          index--;
-          length++;
-        }
-        break;
-
-      case result.change:
-        spaces += result.beforeSpaces;
-
-        if (result.arrayoutput) {
-
-          lines.splice(index, 1);
-
-          for (let y in result.arrayoutput) {
-            result.arrayoutput[y] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.arrayoutput[y];
-
-            lines.splice(index, 0, result.arrayoutput[y]);
-            index++;
-            length++;
-          }
-
-          // index--;
-
-        }
-
-        if (result.value) {
-          lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
-          if (comment.trim() !== ``) {
-            lines[index] += ` //` + comment;
-          }
-        }
-            
-        spaces += result.nextSpaces;
-        break;
-      }
-    
-    }
-
-
     function endBlock(lines,indent) {
       spaces -= indent;
       if (lastBlock !== undefined) {

@@ -2,7 +2,6 @@ let LastKey = ``;
 let Lists = {};
 let doingCALL = false;
 let doingENTRY = false;
-let doingFixedSQL = false;
 
 let EndList = [];
 
@@ -19,9 +18,6 @@ module.exports = {
 
     let spaces = 0;
     let sep = ``;
-
-    let sqlTest1 = input.substr(8, 8).trim().toUpperCase();
-    let sqlTest2 = input.substr(8, 1).trim();
 
     let factor1 = input.substr(12, 14).trim();
     let opcode = input.substr(26, 10).trim().toUpperCase();
@@ -45,7 +41,6 @@ module.exports = {
     let arrayoutput = [];
 
     plainOp = opcode;
-
     if (plainOp.indexOf(`(`) >= 0) {
       plainOp = opcode.substr(0, opcode.indexOf(`(`));
       extender = opcode.substring(opcode.indexOf(`(`)+1, opcode.indexOf(`)`));
@@ -57,24 +52,6 @@ module.exports = {
     }
     if (doingENTRY && plainOp != `PARM`) 
       doingENTRY = false;
-
-    doingFixedSQL = false;
-
-    switch (sqlTest1) {
-    case 'EXEC SQL':
-      output.value = input.substr(8).trim();
-      doingFixedSQL = true;
-      break;
-    case 'END-EXEC':
-      output.value = ';';
-      doingFixedSQL = true;
-      break;
-    }
-
-    if (sqlTest2 == '+') {
-      output.value = input.substr(8).trim();
-      doingFixedSQL = true;
-    }
 
     switch (plainOp) {
     case `PLIST`:
@@ -113,7 +90,7 @@ module.exports = {
       break;
     case `CALL`:
       factor2 = factor2.substring(1, factor2.length-1);
-      // result may contain a PLIST name
+      // result may containe a PLIST name
       if (result != ``) {
         if (Lists[result.toUpperCase()])
           output.value = factor2 + `(` + Lists[result.toUpperCase()].join(`:`) + `)`;
@@ -492,9 +469,7 @@ module.exports = {
       break;
             
     default:
-      if (doingFixedSQL) {
-        output.change = true;
-      } else if (plainOp == ``) {
+      if (plainOp == ``) {
         if (extended !== ``) {
           output.aboveKeywords = extended;
         } else {
@@ -506,29 +481,23 @@ module.exports = {
         output.message = `Operation ` + plainOp + ` will not convert.`;
       }
       break;
-
     }
 
-    if (doingFixedSQL) {
+    if (output.value !== ``) {
       output.change = true;
-    } else {  
-      if (output.value !== ``) {
-        output.change = true;
-        output.value = output.value.trimRight() + `;`;
-      }
+      output.value = output.value.trimRight() + `;`;
+    }
 
-      if (condition.ind !== `` && output.change) {
-        arrayoutput.push(`If` + (condition.not ? ` NOT` : ``) + ` *In` + condition.ind + `;`);
-        arrayoutput.push(`  ` + output.value);
-        arrayoutput.push(`Endif;`);
-      }
+    if (condition.ind !== `` && output.change) {
+      arrayoutput.push(`If` + (condition.not ? ` NOT` : ``) + ` *In` + condition.ind + `;`);
+      arrayoutput.push(`  ` + output.value);
+      arrayoutput.push(`Endif;`);
     }
 
     if (arrayoutput.length > 0) {
       output.change = true;
       output.arrayoutput = arrayoutput;
     }
-    
     return output;
   }
 }
