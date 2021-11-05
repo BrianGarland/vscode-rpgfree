@@ -205,33 +205,31 @@ module.exports = class RpgleFree {
 
       switch (line[7]) {
       case `/`:
-        spec = ``;
-  
         let test = line.substr(8,8).trim().toUpperCase();
         switch (test) {
+        case `EXEC SQL`:
+          // deal with embedded SQL just like normal c-specs
+          fixedSql = true;
+          spec = `C`;
+          break;
+        case `END-EXEC`:  
+          // deal with embedded SQL just like normal c-specs
+          fixedSql = false;
+          spec = `C`;
+          break;
         case `FREE`:
         case `END-FREE`:
+          spec = ``;
           this.lines.splice(index, 1);
           index--;
           break;
-        case `EXEC SQL`:
-          fixedSql = true;
-          this.lines[index] = ``.padEnd(7) + line.substr(8).trim();
-          testForEnd = nextline.substr(7).trim().toUpperCase();
-          if (testForEnd == `/END-EXEC`)
-             this.lines[index] = ``.padEnd(7) + line.substr(8).replace(/\s+$/g,``) + `;`;
-          else
-             this.lines[index] = ``.padEnd(7) + line.substr(8);
-          break;
-        case `END-EXEC`:  
-          fixedSql = false;
-          this.lines[index] = ``;
-          break;
         default:
+          spec = ``;
           this.lines[index] = ``.padEnd(7) + ``.padEnd(spaces) + line.substr(7).trim();
           break;
         }
         break;
+
       case `*`:
         spec = ``;
   
@@ -241,16 +239,13 @@ module.exports = class RpgleFree {
         else
           this.lines[index] = ``;
         break;
+
       case `+`:
-        spec = ``;
-        
+        // deal with embedded SQL just like normal c-specs
         if (fixedSql)
-        testForEnd = nextline.substr(7).trim().toUpperCase();
-        if (testForEnd == `/END-EXEC`)
-           this.lines[index] = ``.padEnd(7) + line.substr(8).replace(/\s+$/g,``) + `;`;
-        else
-           this.lines[index] = ``.padEnd(7) + line.substr(8);
+          spec = `C`;
         break;
+        
       }
   
       if (specs[spec] !== undefined) {
@@ -319,10 +314,12 @@ module.exports = class RpgleFree {
             index--;
   
           } else {
+
             this.lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
             if (comment.trim() !== ``) {
               this.lines[index] += ` //` + comment;
             }
+            
           }
               
           spaces += result.nextSpaces;
