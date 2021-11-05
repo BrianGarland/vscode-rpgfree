@@ -40,7 +40,8 @@
 			"editor/context": [
 				{
 					"command": "vscode-rpgfree.rpgleFree",
-					"group": "1_rpgle"
+					"group": "1_rpgle",
+					"when": "editorLangId == rpgle"
 				}
 			]
 		}
