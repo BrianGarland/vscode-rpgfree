@@ -91,22 +91,60 @@ module.exports = {
         Lists[LastKey].push(result);
         output.remove = true;
         break;
+      case `ACQ`:
+        output.value = opcode + ` ` + factor1 + ` ` + factor2;
+        break;
       case `ADD`:
         if (factor1)
           output.value = result + ` = ` + factor1 + ` + ` + factor2;
         else
           output.value = result + ` = ` + result + ` + ` + factor2;
         break;
+      case `ADDDUR`:
+        // We are adding a duration to a date
+        switch (factor2.split(`:`)[1]) {
+        case `*DAYS`:
+        case `*DAY`:
+        case `*D`:
+          period = `%DAYS`;
+          break;
+        case `*MONTHS`:
+        case `*MONTH`:
+        case `*M`:
+          period = `%MONTHS`;
+          break;
+        case `*YEARS`:
+        case `*YEAR`:
+        case `*Y`:
+          period = `%YEARS`;        
+          break;
+        }
+        if (factor1)
+          output.value = result + ` = ` + factor1 + ` + ` + period + `(` + factor2.split(`:`)[0] + `)`;
+        else
+          output.value = result + ` += ` + period + `(` + factor2.split(`:`)[0] + `)`;
+        break;
+      case `ANDEQ`:
+        output.aboveKeywords = `AND ` + factor1 + ` = ` + factor2;
+        break;
+      case `ANDNE`:
+        output.aboveKeywords = `AND ` + factor1 + ` <> ` + factor2;
+        break;
+      case `ANDLE`:
+        output.aboveKeywords = `AND ` + factor1 + ` <= ` + factor2;
+        break;
+      case `ANDLT`:
+        output.aboveKeywords = `AND ` + factor1 + ` < ` + factor2;
+        break;
+      case `ANDGE`:
+        output.aboveKeywords = `AND ` + factor1 + ` >= ` + factor2;
+        break;
+      case `ANDGT`:
+        output.aboveKeywords = `AND ` + factor1 + ` > ` + factor2;
+        break;    
       case `BEGSR`:
         output.value = opcode + ` ` + factor1;
         output.nextSpaces = indent;
-        break;
-      case `CAT`:
-        if (factor2.indexOf(`:`) >= 0) {
-          spaces = Number(factor2.split(`:`)[1]);
-          factor2 = factor2.split(`:`)[0].trim();
-        }
-        output.value = result + ` = ` + factor1 + `+ '` + ``.padStart(spaces) + `' + ` + factor2;
         break;
       case `CALL`:
         factor2 = factor2.substring(1, factor2.length-1);
@@ -120,6 +158,17 @@ module.exports = {
           Lists[LastKey] = [];
           doingCALL = true;
         }  
+        break;
+      case `CALLB`:
+      case `CALLP`:
+        output.value = extended;
+        break;
+      case `CAT`:
+        if (factor2.indexOf(`:`) >= 0) {
+          spaces = Number(factor2.split(`:`)[1]);
+          factor2 = factor2.split(`:`)[0].trim();
+        }
+        output.value = result + ` = ` + factor1 + `+ '` + ``.padStart(spaces) + `' + ` + factor2;
         break;
       case `CHAIN`:
         if (Lists[factor1.toUpperCase()])
@@ -156,6 +205,36 @@ module.exports = {
         output.nextSpaces = indent;
         EndList.push(`Enddo`);
         break;
+      case `DOUEQ`:
+        output.value = `Dou ` + factor1 + ` = ` + factor2;
+        output.nextSpaces = indent;
+        EndList.push(`Enddo`);
+        break;
+      case `DOUNE`:
+        output.value = `Dou ` + factor1 + ` <> ` + factor2;
+        output.nextSpaces = indent;
+        EndList.push(`Enddo`);
+        break;
+      case `DOUGT`:
+        output.value = `Dou ` + factor1 + ` > ` + factor2;
+        output.nextSpaces = indent;
+        EndList.push(`Enddo`);
+        break;
+      case `DOULT`:
+        output.value = `Dou ` + factor1 + ` < ` + factor2;
+        output.nextSpaces = indent;
+        EndList.push(`Enddo`);
+        break;
+      case `DOUGE`:
+        output.value = `Dou ` + factor1 + ` >= ` + factor2;
+        output.nextSpaces = indent;
+        EndList.push(`Enddo`);
+        break;
+      case `DOULE`:
+        output.value = `Dou ` + factor1 + ` <= ` + factor2;
+        output.nextSpaces = indent;
+        EndList.push(`Enddo`);
+        break;
       case `DOWEQ`:
         output.value = `Dow ` + factor1 + ` = ` + factor2;
         output.nextSpaces = indent;
@@ -188,6 +267,9 @@ module.exports = {
         break;
       case `DSPLY`:
         output.value = opcode + ` (` + factor1 + `) ` + factor2 + ` ` + result;
+        break;
+      case `DUMP`:
+        output.value = opcode + ` ` + factor1;
         break;
       case `ELSE`:
         output.beforeSpaces = -indent;
@@ -230,11 +312,13 @@ module.exports = {
         output.beforeSpaces = -indent;
         output.value = opcode;
         break;
-      case `CALLP`:
       case `EVAL`:
         output.value = extended;
         break;
       case `EVALR`:
+        output.value = opcode + ` ` + extended;
+        break;
+      case `EVAL-CORR`:
         output.value = opcode + ` ` + extended;
         break;
       case `EXCEPT`:
@@ -249,12 +333,6 @@ module.exports = {
       case `FOR`:
         output.value = opcode + ` ` + extended;
         output.nextSpaces = indent;
-        break;
-      case `ANDEQ`:
-        output.aboveKeywords = `AND ` + factor1 + ` = ` + factor2;
-        break;
-      case `ANDNE`:
-        output.aboveKeywords = `AND ` + factor1 + ` <> ` + factor2;
         break;
       case `IF`:
         output.value = opcode + ` ` + extended;
@@ -331,13 +409,31 @@ module.exports = {
       case `OPEN`:
         output.value = opcode + ` ` + factor2;
         break;
-      case `OUT`:
-        output.value = opcode + ` ` + factor1 + ` ` + factor2;
+      case `OREQ`:
+        output.aboveKeywords = `OR ` + factor1 + ` = ` + factor2;
         break;
+      case `ORNE`:
+        output.aboveKeywords = `OR ` + factor1 + ` <> ` + factor2;
+        break;
+      case `ORLE`:
+        output.aboveKeywords = `OR ` + factor1 + ` <= ` + factor2;
+        break;
+      case `ORLT`:
+        output.aboveKeywords = `OR ` + factor1 + ` < ` + factor2;
+        break;
+      case `ORGE`:
+        output.aboveKeywords = `OR ` + factor1 + ` >= ` + factor2;
+        break;
+      case `ORGT`:
+        output.aboveKeywords = `OR ` + factor1 + ` > ` + factor2;
+        break;    
       case `OTHER`:
         output.beforeSpaces = -indent;
         output.value = opcode;
         output.nextSpaces = indent;
+        break;
+      case `OUT`:
+        output.value = opcode + ` ` + factor1 + ` ` + factor2;
         break;
       case `READ`:
       case `READC`:
@@ -357,6 +453,9 @@ module.exports = {
           output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
         else
           output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
+        break;
+      case `RESET`:
+        output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
         break;
       case `RETURN`:
         output.value = opcode + ` ` + factor2;
@@ -394,32 +493,11 @@ module.exports = {
       case `SORTA`:
         output.value = opcode + ` ` + extended;
         break;
-      case `SUB`:
-        output.value = result + ` = ` + factor1 + ` - ` + factor2;
+      case 'SQRT':
+        output.value = result + ` = %SQRT(` + factor2 + `)`;
         break;
-      case `ADDDUR`:
-        // We are adding a duration to a date
-        switch (factor2.split(`:`)[1]) {
-        case `*DAYS`:
-        case `*DAY`:
-        case `*D`:
-          period = `%DAYS`;
-          break;
-        case `*MONTHS`:
-        case `*MONTH`:
-        case `*M`:
-          period = `%MONTHS`;
-          break;
-        case `*YEARS`:
-        case `*YEAR`:
-        case `*Y`:
-          period = `%YEARS`;        
-          break;
-        }
-        if (factor1)
-          output.value = result + ` = ` + factor1 + ` + ` + period + `(` + factor2.split(`:`)[0] + `)`;
-        else
-          output.value = result + ` += ` + period + `(` + factor2.split(`:`)[0] + `)`;
+      case `SUB`: 
+        output.value = result + ` = ` + factor1 + ` - ` + factor2;
         break;
       case `SUBDUR`:
         // If factor2 has a : then it is a duration and we are doing subtacting a duriation from a date
@@ -457,6 +535,9 @@ module.exports = {
         }
         output.value = result + ` = %Subst(` + factor2 + `:` + sep + `:` + factor1 + `)`;
         break;
+      case `TIME`:
+        output.value = result + ` = %Time()`;
+        break;
       case `UNLOCK`:
         output.value = opcode + ` ` + factor2;
         break;
@@ -474,8 +555,39 @@ module.exports = {
         output.value = `When ` + factor1 + ` = ` + factor2;
         output.nextSpaces = indent;
         break;
+      case `WHENNE`:
+        output.beforeSpaces = -indent;
+        output.value = `When ` + factor1 + ` <> ` + factor2;
+        output.nextSpaces = indent;
+        break;
+      case `WHENLT`:
+        output.beforeSpaces = -indent;
+        output.value = `When ` + factor1 + ` < ` + factor2;
+        output.nextSpaces = indent;
+        break;
+      case `WHENLE`:
+        output.beforeSpaces = -indent;
+        output.value = `When ` + factor1 + ` <= ` + factor2;
+        output.nextSpaces = indent;
+        break;
+      case `WHENGT`:
+        output.beforeSpaces = -indent;
+        output.value = `When ` + factor1 + ` > ` + factor2;
+        output.nextSpaces = indent;
+        break;
+      case `WHENGE`:
+        output.beforeSpaces = -indent;
+        output.value = `When ` + factor1 + ` >= ` + factor2;
+        output.nextSpaces = indent;
+        break;
       case `WRITE`:
         output.value = opcode + ` ` + factor2 + ` ` + result;
+        break;
+      case 'XFOOT':
+        output.value = result + ` = %XFOOT(` + factor2 + `)`;
+        break;
+      case 'XLATE':
+        output.value = result + ` = %XLATE(` + factor1 + `:` + factor2 + `)`;
         break;
       case `Z-ADD`:
         output.value = result + ` = 0 + ` + factor2;
@@ -484,10 +596,6 @@ module.exports = {
         output.value = result + ` = 0 - ` + factor2;
         break;
 
-      case `TIME`:
-        output.value = result + ` = %Time()`;
-        break;
-              
       default:
         if (plainOp == ``) {
           if (extended !== ``) {
