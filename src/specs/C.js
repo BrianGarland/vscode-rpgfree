@@ -60,7 +60,7 @@ module.exports = {
     let fixedSql = false;
   
     if (sqltest1 == '/EXEC SQL') {
-      output.value = ``.padEnd(7) + input.substr(16).trim();
+      output.value = ``.padEnd(7) + input.substr(8).trim();
       fixedSql = true;
       condition.ind = ``;
 
