@@ -1,8 +1,6 @@
 let isSubf = false;
 let prevName = ``;
 let blockType = ``;
-let DSisQualified = false;
-let DSisLIKEDS = false;
 
 module.exports = {
   Parse: function (input, indent, wasSub) {
@@ -163,17 +161,16 @@ module.exports = {
         if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `U`)
           keywords = `DTAARA(*AUTO) ` + keywords;
 
-        if (keywords.toUpperCase().indexOf(`QUALIFIED`) === -1)
-          DSisQualified = false;
-
-        if (keywords.toUpperCase().indexOf(`LIKEDS`) === -1)
-          DSisLIKEDS = false;
+        let DSisQualified = (keywords.toUpperCase().indexOf(`QUALIFIED`) >= 0);
+        let DSisLIKEDS = (keywords.toUpperCase().indexOf(`LIKEDS`) >= 0);
+        output.isLIKEDS = DSisLIKEDS;
 
         if (name == ``) 
           name = `*N`;
 
         isSubf = (field == `DS`);
         output.isSub = true;
+        output.isHead = true;
 
         // if keywords contain 'EXTNAME' add apostrophes around name
         extname = keywords.toUpperCase().indexOf(`EXTNAME`);
@@ -198,13 +195,13 @@ module.exports = {
 
         output.value = `Dcl-` + field + ` ` + name + ` ` + type + ` ` + keywords;
 
-	      if (DSisLIKEDS = false) {
+	      if (DSisLIKEDS == false) {
           output.isSub = true;
+          output.nextSpaces = indent;
         }
         output.blockType = field;
         blockType = field;
 
-        output.nextSpaces = indent;
         break;
       case ``:
         output.isSub = true;

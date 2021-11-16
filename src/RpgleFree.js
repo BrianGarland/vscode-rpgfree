@@ -177,6 +177,7 @@ module.exports = class RpgleFree {
     let line, nextline, comment, isMove, hasKeywords, ignoredColumns, spec, spaces = 0;
     let result, testForEnd;
     let wasSub = false;
+    let wasLIKEDS = false;
     let fixedSql = false;
     let lastBlock = ``;
     let index = 0;
@@ -252,12 +253,17 @@ module.exports = class RpgleFree {
         result = specs[spec].Parse(line, this.indent, wasSub);
   
         if (result.isSub === true) {
+          if (result.isHead === true && wasSub && !wasLIKEDS) {
+            endBlock(this.lines,this.indent);
+          }
           wasSub = true;
           lastBlock = result.blockType;
             
         } else if (result.isSub === undefined && wasSub) {
           endBlock(this.lines,this.indent);
         }
+
+        wasLIKEDS = (result.isLIKEDS === true);
   
         if (result.var !== undefined)
           this.addVar(result.var);
