@@ -161,7 +161,6 @@ module.exports = {
         if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `U`)
           keywords = `DTAARA(*AUTO) ` + keywords;
 
-        let DSisQualified = (keywords.toUpperCase().indexOf(`QUALIFIED`) >= 0);
         let DSisLIKEDS = (keywords.toUpperCase().indexOf(`LIKEDS`) >= 0);
         output.isLIKEDS = DSisLIKEDS;
 
@@ -216,8 +215,6 @@ module.exports = {
 
           output.blockType = blockType;
 
-          if (!DSisQualified)
-            output.var.standalone = true;
         }
         break;
       }
