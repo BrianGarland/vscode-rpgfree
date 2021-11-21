@@ -543,7 +543,7 @@ module.exports = {
     // add conditinal operation
     // DO NOT DO when a Do block is encountered
     if (i01 !== `` && plainOp !== `DO`) {
-      var tmp = `If` + (N ? ` NOT` : ``) + ` *In` + i01 + `;`;
+      var tmp = `If *In` + i01 + (N !== "" ? ` = *Off;` : ` = *On;`);
       tmp += `\n  ` + indentify(indent+3) + output.value + `\n` + indentify(indent+3) + `Endif;`;
       output.value = tmp;
       return output;
