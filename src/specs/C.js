@@ -18,6 +18,12 @@ module.exports = {
 
     let spaces = 0;
     let sep = ``;
+    var tmpOut = "";
+
+    //L0N01
+    let L0 = input.substr(7, 2).trim();
+    let N = input.substr(9, 1).trim();
+    let i01 = input.substr(10, 2).trim();
 
     let factor1 = input.substr(12, 14).trim();
     let opcode = input.substr(26, 10).trim().toUpperCase();
@@ -32,6 +38,14 @@ module.exports = {
     let ind3 = input.substr(75, 2).trim();
 
     let period = ``;
+
+    let Drpg3OP = {
+      "EQ": "=",
+      "NE": "<>",
+      "GT": ">",
+      "LT": "<",
+      "GE": ">=",
+      "LE": "<="};
 
     let condition = {
       not: (input.substr(9, 1).toUpperCase() === `N`),
@@ -73,6 +87,8 @@ module.exports = {
       fixedSql = true;
 
     } else {
+      // ----------------------------------------------------------------------------
+      // primary  converion switch
       switch (plainOp) {
       case `PLIST`:
       case `KLIST`:
@@ -125,22 +141,12 @@ module.exports = {
           output.value = result + ` += ` + period + `(` + factor2.split(`:`)[0] + `)`;
         break;
       case `ANDEQ`:
-        output.aboveKeywords = `AND ` + factor1 + ` = ` + factor2;
-        break;
       case `ANDNE`:
-        output.aboveKeywords = `AND ` + factor1 + ` <> ` + factor2;
-        break;
       case `ANDLE`:
-        output.aboveKeywords = `AND ` + factor1 + ` <= ` + factor2;
-        break;
       case `ANDLT`:
-        output.aboveKeywords = `AND ` + factor1 + ` < ` + factor2;
-        break;
       case `ANDGE`:
-        output.aboveKeywords = `AND ` + factor1 + ` >= ` + factor2;
-        break;
       case `ANDGT`:
-        output.aboveKeywords = `AND ` + factor1 + ` > ` + factor2;
+          output.aboveKeywords = `AND ` + factor1 + ` ` + Drpg3OP[plainOp.substr(3, 2)] +` ` + factor2;
         break;    
       case `BEGSR`:
         output.value = opcode + ` ` + factor1;
@@ -186,8 +192,6 @@ module.exports = {
         output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
         break;
       case `CLOSE`:
-        output.value = opcode + ` ` + factor2;
-        break;
       case `DELETE`:
         output.value = opcode + ` ` + factor2;
         break;
@@ -195,9 +199,7 @@ module.exports = {
         output.value = result + ` = ` + factor1 + ` / ` + factor2;
         break;
       case `DO`:
-        output.value = `For ` + result + ` = ` + factor1 + ` to ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
+        normalize_Do(N, i01, factor1, factor2, result, output, indent);
         break;
       case `DOU`:
       case `DOW`:
@@ -205,63 +207,24 @@ module.exports = {
         output.nextSpaces = indent;
         EndList.push(`Enddo`);
         break;
-      case `DOUEQ`:
-        output.value = `Dou ` + factor1 + ` = ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
+      case `DOU`:
       case `DOUNE`:
-        output.value = `Dou ` + factor1 + ` <> ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOUGT`:
-        output.value = `Dou ` + factor1 + ` > ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOULT`:
-        output.value = `Dou ` + factor1 + ` < ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOUGE`:
-        output.value = `Dou ` + factor1 + ` >= ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOULE`:
-        output.value = `Dou ` + factor1 + ` <= ` + factor2;
+      case `DOUEQ`:
+        output.value = `Dou ` + factor1 + ` ` + Drpg3OP[plainOp.substr(3, 2)] + ` ` + factor2;
         output.nextSpaces = indent;
         EndList.push(`Enddo`);
         break;
       case `DOWEQ`:
-        output.value = `Dow ` + factor1 + ` = ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOWNE`:
-        output.value = `Dow ` + factor1 + ` <> ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOWGT`:
-        output.value = `Dow ` + factor1 + ` > ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOWLT`:
-        output.value = `Dow ` + factor1 + ` < ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOWGE`:
-        output.value = `Dow ` + factor1 + ` >= ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOWLE`:
-        output.value = `Dow ` + factor1 + ` <= ` + factor2;
+        output.value = `Dow ` + factor1 + ` ` + Drpg3OP[plainOp.substr(3, 2)]+ ` ` + factor2;
         output.nextSpaces = indent;
         EndList.push(`Enddo`);
         break;
@@ -272,10 +235,6 @@ module.exports = {
         output.value = opcode + ` ` + factor1;
         break;
       case `ELSE`:
-        output.beforeSpaces = -indent;
-        output.value = opcode + ` ` + factor2;
-        output.nextSpaces = indent;
-        break;
       case `ELSEIF`:
         output.beforeSpaces = -indent;
         output.value = opcode + ` ` + factor2;
@@ -290,16 +249,9 @@ module.exports = {
         }
         break;
       case `ENDDO`:
-        output.beforeSpaces = -indent;
-        output.value = opcode;
-        EndList.pop()
-        break;
       case `ENDIF`:
-        output.beforeSpaces = -indent;
-        output.value = opcode;
-        EndList.pop()
-        break;
       case `ENDMON`:
+      case `ENDSR`:
         output.beforeSpaces = -indent;
         output.value = opcode;
         break;
@@ -308,25 +260,15 @@ module.exports = {
         output.value = opcode;
         EndList.pop()
         break;
-      case `ENDSR`:
-        output.beforeSpaces = -indent;
-        output.value = opcode;
-        break;
       case `EVAL`:
         output.value = extended;
         break;
       case `EVALR`:
-        output.value = opcode + ` ` + extended;
-        break;
       case `EVAL-CORR`:
         output.value = opcode + ` ` + extended;
         break;
       case `EXCEPT`:
-        output.value = opcode + ` ` + factor2;
-        break;
       case `EXFMT`:
-        output.value = opcode + ` ` + factor2;
-        break;
       case `EXSR`:
         output.value = opcode + ` ` + factor2;
         break;
@@ -340,44 +282,23 @@ module.exports = {
         EndList.push(`Endif`);
         break;
       case `IFGT`:
-        output.value = `If ` + factor1 + ` > ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Endif`);
-        break;
       case `IFLT`:
-        output.value = `If ` + factor1 + ` < ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Endif`);
-        break;
       case `IFEQ`:
-        output.value = `If ` + factor1 + ` = ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Endif`);
-        break;
       case `IFNE`:
-        output.value = `If ` + factor1 + ` <> ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Endif`);
-        break;
       case `IFGE`:
-        output.value = `If ` + factor1 + ` >= ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Endif`);
-        break;
       case `IFLE`:
-        output.value = `If ` + factor1 + ` <= ` + factor2;
+          normalize_RPG3_If(plainOp, factor1, factor2, output, indent)
+        /*
+        output.value = `If ` + factor1 + ` ` + Drpg3OP[plainOp.substr(2,2)] + ` ` + factor2;
         output.nextSpaces = indent;
         EndList.push(`Endif`);
+        */
         break;
       case `IN`:
         output.value = opcode + ` ` + factor1 + ` ` + factor2;
         break;
       case `ITER`:
-        output.value = opcode;
-        break;
       case `LEAVE`:
-        output.value = opcode;
-        break;
       case `LEAVESR`:
         output.value = opcode;
         break;
@@ -590,7 +511,7 @@ module.exports = {
         output.value = result + ` = %XLATE(` + factor1 + `:` + factor2 + `)`;
         break;
       case `Z-ADD`:
-        output.value = result + ` = 0 + ` + factor2;
+        output.value = result + ` = ` + factor2;
         break;
       case `Z-SUB`: 
         output.value = result + ` = 0 - ` + factor2;
@@ -619,10 +540,13 @@ module.exports = {
         output.value = output.value.trimRight() + `;`;
     }
 
-    if (condition.ind !== `` && output.change) {
-      arrayoutput.push(`If` + (condition.not ? ` NOT` : ``) + ` *In` + condition.ind + `;`);
-      arrayoutput.push(`  ` + output.value);
-      arrayoutput.push(`Endif;`);
+    // add conditinal operation
+    // DO NOT DO when a Do block is encountered
+    if (i01 !== `` && plainOp !== `DO`) {
+      var tmp = `If` + (N ? ` NOT` : ``) + ` *In` + i01 + `;`;
+      tmp += `\n  ` + indentify(indent+3) + output.value + `\n` + indentify(indent+3) + `Endif;`;
+      output.value = tmp;
+      return output;
     }
 
     if (arrayoutput.length > 0) {
@@ -635,4 +559,70 @@ module.exports = {
     }
     return output;
   }
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function indentify(num){
+  var ret = "";
+  for (var i=0; i <num; i++)
+    ret += "  ";
+  return ret;
+}
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function getRpg3CompareOp(opKeyWord){
+  let Drpg3OP = {
+    "EQ": "=",
+    "NE": "<>",
+    "GT": ">",
+    "LT": "<",
+    "GE": ">=",
+    "LE": "<="
+  };
+
+  var len = opKeyWord.length;
+
+  if (opKeyWord.length > 2){
+    var L2 = len - 2;
+    var opStr = opKeyWord.substr(L2, 2);
+
+    return Drpg3OP[opStr]
+  }
+
+  return "";
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_RPG3_If(plainOp, factor1, factor2, output, indent){
+  var op = getRpg3CompareOp(plainOp);
+
+  output.value = `If ` + factor1 + ` ` + op + ` ` + factor2;
+  output.nextSpaces = indent;
+  EndList.push(`Endif`);
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Do(N, i01, factor1, factor2, result, output, indent) {
+  var lin = "";
+  var endStr = "";
+
+  if (i01 !== ""){
+    if (N !== "")
+      lin += "if *in" + i01 + " = *Off\n"
+    else
+      lin += "if *in" + i01 + " = *On\n"
+
+    output.value = lin; 
+    endStr = "Endif";
+  }else{
+    if (factor1 === ""){
+      output.value = `For ` + result + ` to ` + factor2;
+      endStr = "Endfor";
+    } else {
+      output.value = `For ` + result + ` = ` + factor1 + ` to ` + factor2;
+      endStr = "Endfor";
+    }
+  }
+
+  output.nextSpaces = indent;
+  EndList.push(endStr);
 }
