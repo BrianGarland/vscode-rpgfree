@@ -1,3 +1,5 @@
+const { openSync } = require("fs");
+
 let LastKey = ``;
 let Lists = {};
 let doingCALL = false;
@@ -107,46 +109,13 @@ module.exports = {
         Lists[LastKey].push(result);
         output.remove = true;
         break;
-      case `ACQ`:
-        output.value = opcode + ` ` + factor1 + ` ` + factor2;
-        break;
-      case `ADD`:
-        if (factor1)
-          output.value = result + ` = ` + factor1 + ` + ` + factor2;
-        else
-          output.value = result + ` = ` + result + ` + ` + factor2;
-        break;
-      case `ADDDUR`:
-        // We are adding a duration to a date
-        switch (factor2.split(`:`)[1]) {
-        case `*DAYS`:
-        case `*DAY`:
-        case `*D`:
-          period = `%DAYS`;
-          break;
-        case `*MONTHS`:
-        case `*MONTH`:
-        case `*M`:
-          period = `%MONTHS`;
-          break;
-        case `*YEARS`:
-        case `*YEAR`:
-        case `*Y`:
-          period = `%YEARS`;        
-          break;
-        }
-        if (factor1)
-          output.value = result + ` = ` + factor1 + ` + ` + period + `(` + factor2.split(`:`)[0] + `)`;
-        else
-          output.value = result + ` += ` + period + `(` + factor2.split(`:`)[0] + `)`;
-        break;
       case `ANDEQ`:
       case `ANDNE`:
       case `ANDLE`:
       case `ANDLT`:
       case `ANDGE`:
       case `ANDGT`:
-          output.aboveKeywords = `AND ` + factor1 + ` ` + Drpg3OP[plainOp.substr(3, 2)] +` ` + factor2;
+        normalize_RPG3_BoolOp(plainOp, factor1, factor2, output);
         break;    
       case `BEGSR`:
         output.value = opcode + ` ` + factor1;
@@ -176,12 +145,6 @@ module.exports = {
         }
         output.value = result + ` = ` + factor1 + `+ '` + ``.padStart(spaces) + `' + ` + factor2;
         break;
-      case `CHAIN`:
-        if (Lists[factor1.toUpperCase()])
-          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
-        else
-          output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
-        break;
       case `CHECK`:
         output.value = result + ` = %Check(` + factor1 + `:` + factor2 + `)`;
         break;
@@ -189,14 +152,8 @@ module.exports = {
         output.value = result + ` = %CheckR(` + factor1 + `:` + factor2 + `)`;
         break;
       case `CLEAR`:
-        output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
-        break;
-      case `CLOSE`:
-      case `DELETE`:
-        output.value = opcode + ` ` + factor2;
-        break;
-      case `DIV`:
-        output.value = result + ` = ` + factor1 + ` / ` + factor2;
+      case `RESET`:
+        normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output);
         break;
       case `DO`:
         normalize_Do(N, i01, factor1, factor2, result, output, indent);
@@ -263,15 +220,6 @@ module.exports = {
       case `EVAL`:
         output.value = extended;
         break;
-      case `EVALR`:
-      case `EVAL-CORR`:
-        output.value = opcode + ` ` + extended;
-        break;
-      case `EXCEPT`:
-      case `EXFMT`:
-      case `EXSR`:
-        output.value = opcode + ` ` + factor2;
-        break;
       case `FOR`:
         output.value = opcode + ` ` + extended;
         output.nextSpaces = indent;
@@ -293,9 +241,6 @@ module.exports = {
         output.nextSpaces = indent;
         EndList.push(`Endif`);
         */
-        break;
-      case `IN`:
-        output.value = opcode + ` ` + factor1 + ` ` + factor2;
         break;
       case `ITER`:
       case `LEAVE`:
@@ -320,33 +265,23 @@ module.exports = {
         }
         break;
       case `MULT`:
-        output.value = result + ` = ` + factor1 + ` * ` + factor2;
+      case `SUB`: 
+      case `DIV`:
+      case `ADD`:
+        normalize_MathOperations(plainOp, factor1, factor2, result, output);
         break;
       case `ON-ERROR`:
         output.beforeSpaces = -indent;
         output.value = opcode + ` ` + factor2;
         output.nextSpaces = indent;
         break;
-      case `OPEN`:
-        output.value = opcode + ` ` + factor2;
-        break;
       case `OREQ`:
-        output.aboveKeywords = `OR ` + factor1 + ` = ` + factor2;
-        break;
       case `ORNE`:
-        output.aboveKeywords = `OR ` + factor1 + ` <> ` + factor2;
-        break;
       case `ORLE`:
-        output.aboveKeywords = `OR ` + factor1 + ` <= ` + factor2;
-        break;
       case `ORLT`:
-        output.aboveKeywords = `OR ` + factor1 + ` < ` + factor2;
-        break;
       case `ORGE`:
-        output.aboveKeywords = `OR ` + factor1 + ` >= ` + factor2;
-        break;
       case `ORGT`:
-        output.aboveKeywords = `OR ` + factor1 + ` > ` + factor2;
+        normalize_RPG3_BoolOp(plainOp, factor1, factor2, output);
         break;    
       case `OTHER`:
         output.beforeSpaces = -indent;
@@ -354,32 +289,17 @@ module.exports = {
         output.nextSpaces = indent;
         break;
       case `OUT`:
+      case `IN`:
+      case `ACQ`:
         output.value = opcode + ` ` + factor1 + ` ` + factor2;
         break;
-      case `READ`:
-      case `READC`:
-        output.value = opcode + ` ` + factor2 + ` ` + result;
-        break;
+      case `CHAIN`:
       case `READE`:
-        if (Lists[factor1.toUpperCase()])
-          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
-        else
-          output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
-        break;
-      case `READP`:
-        output.value = opcode + ` ` + factor2 + ` ` + result;
-        break;
       case `READPE`:
         if (Lists[factor1.toUpperCase()])
           output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
         else
-          output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
-        break;
-      case `RESET`:
-        output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
-        break;
-      case `RETURN`:
-        output.value = opcode + ` ` + factor2;
+          normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output);
         break;
       case `SCAN`:
         output.value = result + ` = %Scan(` + factor1 + `:` + factor2 + `)`;
@@ -390,11 +310,6 @@ module.exports = {
         EndList.push(`Endsl`);
         break;
       case `SETGT`:
-        if (Lists[factor1.toUpperCase()])
-          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
-        else
-          output.value = opcode + ` ` + factor1 + ` ` + factor2;
-        break;
       case `SETLL`:
         if (Lists[factor1.toUpperCase()])
           output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
@@ -412,42 +327,16 @@ module.exports = {
         if (ind3 != ``) arrayoutput.push(`*In` + ind3 + ` = *On;`);
         break;
       case `SORTA`:
+      case `EVALR`:
+      case `EVAL-CORR`:
         output.value = opcode + ` ` + extended;
         break;
       case 'SQRT':
         output.value = result + ` = %SQRT(` + factor2 + `)`;
         break;
-      case `SUB`: 
-        output.value = result + ` = ` + factor1 + ` - ` + factor2;
-        break;
+      case `ADDDUR`:
       case `SUBDUR`:
-        // If factor2 has a : then it is a duration and we are doing subtacting a duriation from a date
-        if (factor2.includes(`:`)) {
-          switch (factor2.split(`:`)[1]) {
-          case `*DAYS`:
-          case `*DAY`:
-          case `*D`:
-            period = `%DAYS`;
-            break;
-          case `*MONTHS`:
-          case `*MONTH`:
-          case `*M`:
-            period = `%MONTHS`;
-            break;
-          case `*YEARS`:
-          case `*YEAR`:
-          case `*Y`:
-            period = `%YEARS`;        
-            break;
-          }
-          if (factor1)
-            output.value = result + ` = ` + factor1 + ` - ` + period + `(` + factor2.split(`:`)[0] + `)`;
-          else
-            output.value = result + ` -= ` + period + `(` + factor2.split(`:`)[0] + `)`;
-        }
-        // If factor2 doesn't have a duration then we are finding the duration between two dates 
-        else       
-          output.value = result.split(`:`)[0] + ` = %DIFF(` + factor1 + `:` + factor2 + `:` + result.split(`:`)[1] + `)`;
+        normalize_SubAddDuration(plainOp, factor1, factor2, result, output);
         break;         
       case `SUBST`:
         if (factor2.indexOf(`:`) >= 0) {
@@ -459,48 +348,33 @@ module.exports = {
       case `TIME`:
         output.value = result + ` = %Time()`;
         break;
+      case `RETURN`:
       case `UNLOCK`:
+      case `OPEN`:
+      case `EXSR`:
+      case `DELETE`:
+      case `CLOSE`:
+      case `EXCEPT`:
+      case `EXFMT`:
         output.value = opcode + ` ` + factor2;
         break;
-      case `UPDATE`:
-        output.value = opcode + ` ` + factor2 + ` ` + result;
-        break;
-        //TODO: Other WHEN conditions
       case `WHEN`:
         output.beforeSpaces = -indent;
         output.value = opcode + ` ` + extended;
         output.nextSpaces = indent;
         break;
       case `WHENEQ`:
-        output.beforeSpaces = -indent;
-        output.value = `When ` + factor1 + ` = ` + factor2;
-        output.nextSpaces = indent;
-        break;
       case `WHENNE`:
-        output.beforeSpaces = -indent;
-        output.value = `When ` + factor1 + ` <> ` + factor2;
-        output.nextSpaces = indent;
-        break;
       case `WHENLT`:
-        output.beforeSpaces = -indent;
-        output.value = `When ` + factor1 + ` < ` + factor2;
-        output.nextSpaces = indent;
-        break;
       case `WHENLE`:
-        output.beforeSpaces = -indent;
-        output.value = `When ` + factor1 + ` <= ` + factor2;
-        output.nextSpaces = indent;
-        break;
       case `WHENGT`:
-        output.beforeSpaces = -indent;
-        output.value = `When ` + factor1 + ` > ` + factor2;
-        output.nextSpaces = indent;
-        break;
       case `WHENGE`:
-        output.beforeSpaces = -indent;
-        output.value = `When ` + factor1 + ` >= ` + factor2;
-        output.nextSpaces = indent;
+        normalize_WhenXX(plainOp, factor1, factor2, output, indent);
         break;
+      case `READ`:
+      case `READC`:
+      case `READP`:
+      case `UPDATE`:
       case `WRITE`:
         output.value = opcode + ` ` + factor2 + ` ` + result;
         break;
@@ -625,4 +499,84 @@ function normalize_Do(N, i01, factor1, factor2, result, output, indent) {
 
   output.nextSpaces = indent;
   EndList.push(endStr);
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_RPG3_BoolOp(plainOp, factor1, factor2, output){
+  var op = getRpg3CompareOp(plainOp);
+  var keywrd = "";
+
+  if (plainOp.substr(0, 2) == "AN"){
+    keywrd = "And"
+  }else {
+    keywrd = "Or"
+  }
+
+  output.aboveKeywords = keywrd +` ` + factor1 + ` ` + op +` ` + factor2;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output){
+  output.value = plainOp + ` ` + factor1 + ` ` + factor2 + ` ` + result;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_WhenXX(plainOp, factor1, factor2, output, indent){
+  var op = getRpg3CompareOp(plainOp);
+
+  output.beforeSpaces = -indent;
+  output.value = `When ` + factor1 + ` ` + op + ` ` + factor2;
+  output.nextSpaces = indent;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_MathOperations(plainOp, factor1, factor2, result, output){
+  let dKeyWrd = {
+    "ADD": "+",
+    "MULT": "*",
+    "DIV": "/",
+    "SUB": "-"
+  };
+
+  if (factor1 !== "")
+    output.value = result + ` = ` + factor1 + ` ` + dKeyWrd[plainOp] + ` ` + factor2;
+  else
+    output.value = result + ` ` + dKeyWrd[plainOp] +`= ` + factor2;
+}
+
+function normalize_SubAddDuration(plainOp, factor1, factor2, result, output){
+  var period = "";
+  var keyOp = "";
+  var facArr = factor2.split(`:`);
+
+  // convert duration to BIF
+  switch (facArr[1]) {
+    case `*DAYS`:
+    case `*DAY`:
+    case `*D`:
+      period = `%DAYS`;
+      break;
+    case `*MONTHS`:
+    case `*MONTH`:
+    case `*M`:
+      period = `%MONTHS`;
+      break;
+    case `*YEARS`:
+    case `*YEAR`:
+    case `*Y`:
+      period = `%YEARS`;        
+      break;
+    }
+  
+  // get mathmatic opertion
+  if (plainOp.substr(0,2) == "AD")
+    keyOp = "+";
+  else
+    keyOp = "-";
+
+  // apply convertion
+  if (factor1)
+    output.value = result + ` = ` + factor1 + ` ` + keyOp + ` ` + period + `(` + facArr[0] + `)`;
+  else
+    output.value = result + ` ` + keyOp + `= ` + period + `(` + facArr[0] + `)`;
 }
