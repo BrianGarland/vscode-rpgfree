@@ -136,6 +136,7 @@ module.exports = {
         break;
       case `CALLB`:
       case `CALLP`:
+      case `EVAL`:
         output.value = extended;
         break;
       case `CAT`:
@@ -144,12 +145,6 @@ module.exports = {
           factor2 = factor2.split(`:`)[0].trim();
         }
         output.value = result + ` = ` + factor1 + `+ '` + ``.padStart(spaces) + `' + ` + factor2;
-        break;
-      case `CHECK`:
-        output.value = result + ` = %Check(` + factor1 + `:` + factor2 + `)`;
-        break;
-      case `CHECKR`:
-        output.value = result + ` = %CheckR(` + factor1 + `:` + factor2 + `)`;
         break;
       case `CLEAR`:
       case `RESET`:
@@ -215,10 +210,7 @@ module.exports = {
       case `ENDSL`:
         output.beforeSpaces = -(indent*2);
         output.value = opcode;
-        EndList.pop()
-        break;
-      case `EVAL`:
-        output.value = extended;
+        EndList.pop();
         break;
       case `FOR`:
         output.value = opcode + ` ` + extended;
@@ -235,12 +227,7 @@ module.exports = {
       case `IFNE`:
       case `IFGE`:
       case `IFLE`:
-          normalize_RPG3_If(plainOp, factor1, factor2, output, indent)
-        /*
-        output.value = `If ` + factor1 + ` ` + Drpg3OP[plainOp.substr(2,2)] + ` ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Endif`);
-        */
+        normalize_RPG3_If(plainOp, factor1, factor2, output, indent);
         break;
       case `ITER`:
       case `LEAVE`:
@@ -302,7 +289,10 @@ module.exports = {
           normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output);
         break;
       case `SCAN`:
-        output.value = result + ` = %Scan(` + factor1 + `:` + factor2 + `)`;
+      case `CHECK`:
+      case `CHECKR`:
+      case 'XLATE':
+        normalize_TwoItemBIF(plainOp, factor1, factor2, result, output)
         break;
       case `SELECT`:
         output.value = opcode;
@@ -317,14 +307,8 @@ module.exports = {
           output.value = opcode + ` ` + factor1 + ` ` + factor2;
         break;
       case `SETOFF`:
-        if (ind1 != ``) arrayoutput.push(`*In` + ind1 + ` = *Off;`);
-        if (ind2 != ``) arrayoutput.push(`*In` + ind2 + ` = *Off;`);
-        if (ind3 != ``) arrayoutput.push(`*In` + ind3 + ` = *Off;`);
-        break;
       case `SETON`:
-        if (ind1 != ``) arrayoutput.push(`*In` + ind1 + ` = *On;`);
-        if (ind2 != ``) arrayoutput.push(`*In` + ind2 + ` = *On;`);
-        if (ind3 != ``) arrayoutput.push(`*In` + ind3 + ` = *On;`);
+        normalize_Set_OnOff(plainOp, arrayoutput, ind1, ind2, ind3)
         break;
       case `SORTA`:
       case `EVALR`:
@@ -380,9 +364,6 @@ module.exports = {
         break;
       case 'XFOOT':
         output.value = result + ` = %XFOOT(` + factor2 + `)`;
-        break;
-      case 'XLATE':
-        output.value = result + ` = %XLATE(` + factor1 + `:` + factor2 + `)`;
         break;
       case `Z-ADD`:
         output.value = result + ` = ` + factor2;
@@ -520,7 +501,6 @@ function normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, outpu
   output.value = plainOp + ` ` + factor1 + ` ` + factor2 + ` ` + result;
 }
 
-// ///////////////////////////////////////////////////////////////////////////////////////////
 function normalize_WhenXX(plainOp, factor1, factor2, output, indent){
   var op = getRpg3CompareOp(plainOp);
 
@@ -529,7 +509,6 @@ function normalize_WhenXX(plainOp, factor1, factor2, output, indent){
   output.nextSpaces = indent;
 }
 
-// ///////////////////////////////////////////////////////////////////////////////////////////
 function normalize_MathOperations(plainOp, factor1, factor2, result, output){
   let dKeyWrd = {
     "ADD": "+",
@@ -544,6 +523,7 @@ function normalize_MathOperations(plainOp, factor1, factor2, result, output){
     output.value = result + ` ` + dKeyWrd[plainOp] +`= ` + factor2;
 }
 
+// ///////////////////////////////////////////////////////////////////////////////////////////
 function normalize_SubAddDuration(plainOp, factor1, factor2, result, output){
   var period = "";
   var keyOp = "";
@@ -579,4 +559,17 @@ function normalize_SubAddDuration(plainOp, factor1, factor2, result, output){
     output.value = result + ` = ` + factor1 + ` ` + keyOp + ` ` + period + `(` + facArr[0] + `)`;
   else
     output.value = result + ` ` + keyOp + `= ` + period + `(` + facArr[0] + `)`;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Set_OnOff(plainOp, arrayoutput, ind1, ind2, ind3) {
+  var value = (plainOp == "SETON")? "*On": "*Off";
+  if (ind1 != ``) arrayoutput.push(`*In` + ind1 + ` = ` + value + `;`);
+  if (ind2 != ``) arrayoutput.push(`*In` + ind2 + ` = ` + value + `;`);
+  if (ind3 != ``) arrayoutput.push(`*In` + ind3 + ` = ` + value + `;`);
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_TwoItemBIF(plainOp, factor1, factor2, result, output) {
+  output.value = result + ` = %` + plainOp + `(` + factor1 + `:` + factor2 + `)`;
 }
