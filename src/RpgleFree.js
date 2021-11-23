@@ -232,11 +232,14 @@ module.exports = class RpgleFree {
         break;
 
       case `*`:
+        // check for RPG style comments
         spec = ``;
-  
+    
         comment = line.substr(8).trim();
-        if (comment !== ``)
-          this.lines[index] = ``.padEnd(8) + ``.padEnd(spaces) + `//` + comment;
+        if (comment !== ``){
+          var idx = comment.indexOf("*") + 1;
+          this.lines[index] = ``.padEnd(8) + ``.padEnd(spaces) + `// ` + comment.substr(idx);
+        }
         else
           this.lines[index] = ``;
         break;
