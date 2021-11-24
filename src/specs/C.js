@@ -1,9 +1,12 @@
+const { S_IWOTH } = require("constants");
 const { openSync } = require("fs");
 
 let LastKey = ``;
 let Lists = {};
 let doingCALL = false;
 let doingENTRY = false;
+var gblFac1 = "";
+var gblFac2 = "";
 
 let EndList = [];
 
@@ -200,6 +203,9 @@ module.exports = {
           output.message = `Operation ` + plainOp + ` will not convert; no matching block found.`;
         }
         break;
+      case `COMP`:
+        normalize_Compare(factor1, factor2, ind1, ind2, ind3, output);
+        break;
       case `ENDDO`:
       case `ENDIF`:
       case `ENDMON`:
@@ -257,6 +263,9 @@ module.exports = {
       case `ADD`:
         normalize_MathOperations(plainOp, factor1, factor2, result, output);
         break;
+      case `MVR`:
+        output.value = result + ` = %rem(` + gblFac1+ `: ` + gblFac2 + `)`;
+        break;
       case `ON-ERROR`:
         output.beforeSpaces = -indent;
         output.value = opcode + ` ` + factor2;
@@ -269,7 +278,15 @@ module.exports = {
       case `ORGE`:
       case `ORGT`:
         normalize_RPG3_BoolOp(plainOp, factor1, factor2, output);
-        break;    
+        break;
+      case `CASEQ`:
+      case `CASNE`:
+      case `CASLE`:
+      case `CASLT`:
+      case `CASGE`:
+      case `CASGT`:
+        normalize_Cas(plainOp, factor1, factor2, result, indent, output);
+        break;
       case `OTHER`:
         output.beforeSpaces = -indent;
         output.value = opcode;
@@ -510,6 +527,7 @@ function normalize_WhenXX(plainOp, factor1, factor2, output, indent){
 }
 
 function normalize_MathOperations(plainOp, factor1, factor2, result, output){
+  var op = "";
   let dKeyWrd = {
     "ADD": "+",
     "MULT": "*",
@@ -517,10 +535,19 @@ function normalize_MathOperations(plainOp, factor1, factor2, result, output){
     "SUB": "-"
   };
 
+  // get freeformat math operation
+  op = dKeyWrd[plainOp];
+
+  // on devide save the factors
+  if (op == "/"){
+    gblFac1 = factor1;
+    gblFac2 = factor2;
+  }
+
   if (factor1 !== "")
-    output.value = result + ` = ` + factor1 + ` ` + dKeyWrd[plainOp] + ` ` + factor2;
+    output.value = result + ` = ` + factor1 + ` ` + op + ` ` + factor2;
   else
-    output.value = result + ` ` + dKeyWrd[plainOp] +`= ` + factor2;
+    output.value = result + ` ` + op +`= ` + factor2;
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
@@ -572,4 +599,48 @@ function normalize_Set_OnOff(plainOp, arrayoutput, ind1, ind2, ind3) {
 // ///////////////////////////////////////////////////////////////////////////////////////////
 function normalize_TwoItemBIF(plainOp, factor1, factor2, result, output) {
   output.value = result + ` = %` + plainOp + `(` + factor1 + `:` + factor2 + `)`;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Compare(factor1, factor2, ind1, ind2, ind3, output) {
+  var op = "";
+  var chkStr = "";
+  var indicator = "";
+
+  chkStr += (ind1 != "")?"1":"0";
+  chkStr += (ind2 != "")?"1":"0";
+  chkStr += (ind3 != "")?"1":"0";
+  indicator = (ind1 + ind2 + ind3).trim().substr(0,2);
+
+  switch(chkStr){
+    case "001":
+      op = "=";
+      break;
+    case "010":
+      op = ">";
+      break;
+    case "011":
+      op = ">=";
+      break;
+    case "100":
+      op = "<";
+      break;
+    case "101":
+      op = "<=";
+      break;
+    case "110":
+      op = "<>";
+      break;
+  }
+  
+  output.value = `*in` + indicator + ` = (` + factor1 + ` ` + op + ` ` + factor2 + `)`;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Cas(plainOp, factor1, factor2, result, indent, output) {
+  var op = getRpg3CompareOp(plainOp);
+  var lidt01 = indentify(indent + 3);
+  var lidt02 = indentify(indent + 2);
+
+  output.value = `if ` + factor1 + ` ` + op + ` ` + factor2 + `;\n` + lidt01 + `Exsr ` + result + `;\n` + lidt02 + `endif`;
 }
