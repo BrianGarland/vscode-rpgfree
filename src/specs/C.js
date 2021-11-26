@@ -1,5 +1,6 @@
 const { S_IWOTH } = require("constants");
 const { openSync } = require("fs");
+const { kill } = require("process");
 
 let LastKey = ``;
 let Lists = {};
@@ -8,6 +9,7 @@ let doingENTRY = false;
 var gblFac1 = "";
 var gblFac2 = "";
 var gblFirsCascade = false;
+var gblIndent = 0;
 
 let EndList = [];
 
@@ -22,6 +24,7 @@ module.exports = {
       nextSpaces: 0
     };
 
+    var doAddAfter = false;
     let spaces = 0;
     let sep = ``;
 
@@ -44,14 +47,6 @@ module.exports = {
 
     let period = ``;
 
-    let Drpg3OP = {
-      "EQ": "=",
-      "NE": "<>",
-      "GT": ">",
-      "LT": "<",
-      "GE": ">=",
-      "LE": "<="};
-
     let condition = {
       not: (input.substr(9, 1).toUpperCase() === `N`),
       ind: input.substr(10, 2).trim()
@@ -67,7 +62,7 @@ module.exports = {
 
     if (doingCALL && plainOp != `PARM`) {
       doingCALL = false;
-      arrayoutput.push(LastKey + `(` + Lists[LastKey].join(`:`) + `);`);
+      arrayoutput.push(LastKey + `(` + Lists[LastKey].join(`: `) + `);`);
     }
     if (doingENTRY && plainOp != `PARM`) 
       doingENTRY = false;
@@ -123,6 +118,7 @@ module.exports = {
       case `BEGSR`:
         output.value = opcode + ` ` + factor1;
         output.nextSpaces = indent;
+        gblIndent += indent;
         break;
       case `CALL`:
         factor2 = factor2.substring(1, factor2.length-1);
@@ -151,7 +147,7 @@ module.exports = {
         break;
       case `CLEAR`:
       case `RESET`:
-        normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output);
+        output.value = normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output);
         break;
       case `DO`:
         normalize_Do(L0, N, i01, factor1, factor2, result, output, indent);
@@ -160,28 +156,22 @@ module.exports = {
       case `DOW`:
         output.value = opcode + ` ` + extended;
         output.nextSpaces = indent;
+        gblIndent += indent;
         EndList.push(`Enddo`);
         break;
-      case `DOU`:
       case `DOUNE`:
       case `DOUGT`:
       case `DOULT`:
       case `DOUGE`:
       case `DOULE`:
       case `DOUEQ`:
-        output.value = `Dou ` + factor1 + ` ` + Drpg3OP[plainOp.substr(3, 2)] + ` ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOWEQ`:
       case `DOWNE`:
       case `DOWGT`:
       case `DOWLT`:
       case `DOWGE`:
       case `DOWLE`:
-        output.value = `Dow ` + factor1 + ` ` + Drpg3OP[plainOp.substr(3, 2)]+ ` ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
+        normalize_DoWU(plainOp, factor1, factor2, output, indent);
         break;
       case `DSPLY`:
         output.value = opcode + ` (` + factor1 + `) ` + factor2 + ` ` + result;
@@ -198,6 +188,7 @@ module.exports = {
       case `END`:
         if (EndList.length > 0) {
           output.beforeSpaces = -indent;
+          gblIndent -= indent;
           output.value = EndList.pop();
         } else {
           output.message = `Operation ` + plainOp + ` will not convert; no matching block found.`;
@@ -212,19 +203,23 @@ module.exports = {
       case `ENDSR`:
         output.beforeSpaces = -indent;
         output.value = opcode;
+        gblIndent -= indent;
         break;
       case `ENDSL`:
         output.beforeSpaces = -(indent*2);
+        gblIndent -= indent*2;
         output.value = opcode;
         EndList.pop();
         break;
       case `FOR`:
         output.value = opcode + ` ` + extended;
         output.nextSpaces = indent;
+        gblIndent += indent;
         break;
       case `IF`:
         output.value = opcode + ` ` + extended;
         output.nextSpaces = indent;
+        gblIndent += indent;
         EndList.push(`Endif`);
         break;
       case `IFGT`:
@@ -246,6 +241,7 @@ module.exports = {
       case `MONITOR`:
         output.value = opcode;
         output.nextSpaces = indent;
+        gblIndent += indent;
         break;
       case `MOVE`:
       case `MOVEL`:
@@ -268,8 +264,10 @@ module.exports = {
         break;
       case `ON-ERROR`:
         output.beforeSpaces = -indent;
+        gblIndent -= indent;
         output.value = opcode + ` ` + factor2;
         output.nextSpaces = indent;
+        gblIndent += indent;
         break;
       case `OREQ`:
       case `ORNE`:
@@ -289,8 +287,10 @@ module.exports = {
         break;
       case `OTHER`:
         output.beforeSpaces = -indent;
+        gblIndent -= indent;
         output.value = opcode;
         output.nextSpaces = indent;
+        gblIndent += indent;
         break;
       case `OUT`:
       case `IN`:
@@ -300,10 +300,8 @@ module.exports = {
       case `CHAIN`:
       case `READE`:
       case `READPE`:
-        if (Lists[factor1.toUpperCase()])
-          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
-        else
-          normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output);
+        normalize_ChaninRead(plainOp, factor1, factor2, result, ind1, ind2, arrayoutput, output);
+        doAddAfter = true;
         break;
       case `SCAN`:
       case `CHECK`:
@@ -319,7 +317,7 @@ module.exports = {
       case `SETGT`:
       case `SETLL`:
         if (Lists[factor1.toUpperCase()])
-          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
+          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`: `) + `) ` + factor2;
         else
           output.value = opcode + ` ` + factor1 + ` ` + factor2;
         break;
@@ -363,6 +361,7 @@ module.exports = {
         output.beforeSpaces = -indent;
         output.value = opcode + ` ` + extended;
         output.nextSpaces = indent;
+        gblIndent += indent;
         break;
       case `WHENEQ`:
       case `WHENNE`:
@@ -427,11 +426,17 @@ module.exports = {
 
     if (arrayoutput.length > 0) {
       output.change = true;
-      if (output.value !== ``) {
-        arrayoutput.push(`  ` + output.value);
-        output.Value = ``;
+
+      if (doAddAfter == false){
+        if (output.value !== ``) {
+          arrayoutput.push(`  ` + output.value);
+          output.value = ``;
+        }
+        output.arrayoutput = arrayoutput;
+      } else {
+        output.arrayoutput = [output.value].concat(arrayoutput);
+        output.value = ``;
       }
-      output.arrayoutput = arrayoutput;
     }
     return output;
   }
@@ -461,7 +466,8 @@ function getRpg3CompareOp(opKeyWord){
     var L2 = len - 2;
     var opStr = opKeyWord.substr(L2, 2);
 
-    return Drpg3OP[opStr]
+    if (opStr in Drpg3OP)
+      return Drpg3OP[opStr];
   }
 
   return "";
@@ -473,7 +479,23 @@ function normalize_RPG3_If(plainOp, factor1, factor2, output, indent){
 
   output.value = `If ` + factor1 + ` ` + op + ` ` + factor2;
   output.nextSpaces = indent;
+  gblIndent += indent;
   EndList.push(`Endif`);
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_DoWU(plainOp, factor1, factor2, output, indent) {
+  var keywrd = "";
+
+  if (plainOp.substr(0,3) == `DOW`)
+    keywrd = `Dow`;
+  else
+    keywrd = `Dou`;
+
+  output.value = keywrd + ` ` + factor1 + ` ` + getRpg3CompareOp(plainOp) + ` ` + factor2;
+  output.nextSpaces = indent;
+  gblIndent += indent;
+  EndList.push(`Enddo`);
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
@@ -508,6 +530,7 @@ function normalize_Do(L0, N, i01, factor1, factor2, result, output, indent) {
   }
 
   output.nextSpaces = indent;
+  gblIndent += indent;
   EndList.push(endStr);
 }
 
@@ -552,15 +575,17 @@ function normalize_ControlInd_Cascade(output, L0, N, i01) {
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
 function normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output){
-  output.value = plainOp + ` ` + factor1 + ` ` + factor2 + ` ` + result;
+  return plainOp + ` ` + factor1 + ` ` + factor2 + ` ` + result;
 }
 
+// ///////////////////////////////////////////////////////////////////////////////////////////
 function normalize_WhenXX(plainOp, factor1, factor2, output, indent){
   var op = getRpg3CompareOp(plainOp);
 
   output.beforeSpaces = -indent;
   output.value = `When ` + factor1 + ` ` + op + ` ` + factor2;
   output.nextSpaces = indent;
+  gblIndent += indent;
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
@@ -714,4 +739,26 @@ function  normalize_ControlLevel_indicators(L0, N, i01, indent, output) {
   output.value = tmp;
   
   return output;
+}
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_ChaninRead(plainOp, factor1, factor2, result, ind1, ind2, arrayoutput, output) {
+  var line = ``;
+  var klst = factor1.toUpperCase();
+
+  if (Lists[klst]) 
+    line = plainOp + ` (` + Lists[klst].join(`: `) + `) ` + factor2 + ` ` + result;
+  else {
+    line = normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output);
+  }
+  
+  line = line.trim();
+
+  if (ind1 !== "")
+    arrayoutput.push(`*in` + ind1 + ` = (%found() = *Off);`)
+    //line += ";\n" + indentify(gblIndent) + `*in` + ind1 + ` = (%found() = *Off)`;
+  
+  if (ind2 !== "")
+    arrayoutput.push(`*in` + ind2 + ` = %error();`);
+  
+    output.value = line;
 }
