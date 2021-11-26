@@ -7,6 +7,7 @@ let doingCALL = false;
 let doingENTRY = false;
 var gblFac1 = "";
 var gblFac2 = "";
+var gblFirsCascade = false;
 
 let EndList = [];
 
@@ -23,7 +24,6 @@ module.exports = {
 
     let spaces = 0;
     let sep = ``;
-    var tmpOut = "";
 
     //L0N01
     let L0 = input.substr(7, 2).trim();
@@ -154,7 +154,7 @@ module.exports = {
         normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output);
         break;
       case `DO`:
-        normalize_Do(N, i01, factor1, factor2, result, output, indent);
+        normalize_Do(L0, N, i01, factor1, factor2, result, output, indent);
         break;
       case `DOU`:
       case `DOW`:
@@ -325,7 +325,7 @@ module.exports = {
         break;
       case `SETOFF`:
       case `SETON`:
-        normalize_Set_OnOff(plainOp, arrayoutput, ind1, ind2, ind3)
+        normalize_Set_OnOff(plainOp, indent, ind1, ind2, ind3, output);
         break;
       case `SORTA`:
       case `EVALR`:
@@ -394,9 +394,14 @@ module.exports = {
           if (extended !== ``) {
             output.aboveKeywords = extended;
           } else {
-            //Set to blank
-            output.change = true;
-            output.value = ``;
+            if (L0 !== `` || i01 !== ``){
+              normalize_ControlInd_Cascade(output, L0, N, i01);
+            }
+            else{
+              //Set to blank
+              output.change = true;
+              output.value = ``;
+            }
           }
         } else {
           output.message = `Operation ` + plainOp + ` will not convert.`;
@@ -408,17 +413,16 @@ module.exports = {
 
     if (output.value !== ``) {
       output.change = true;
+
       if (!fixedSql)
         output.value = output.value.trimRight() + `;`;
     }
 
     // add conditinal operation
     // DO NOT DO when a Do block is encountered
+    // Do blocks are handled with  normalize_DO
     if (i01 !== `` && plainOp !== `DO`) {
-      var tmp = `If *In` + i01 + (N !== "" ? ` = *Off;` : ` = *On;`);
-      tmp += `\n  ` + indentify(indent+3) + output.value + `\n` + indentify(indent+3) + `Endif;`;
-      output.value = tmp;
-      return output;
+      return normalize_ControlLevel_indicators(L0, N, i01, indent, output);
     }
 
     if (arrayoutput.length > 0) {
@@ -436,8 +440,8 @@ module.exports = {
 // ///////////////////////////////////////////////////////////////////////////////////////////
 function indentify(num){
   var ret = "";
-  for (var i=0; i <num; i++)
-    ret += "  ";
+  for (var i=0; i <(num/4); i++)
+    ret += "    ";
   return ret;
 }
 // ///////////////////////////////////////////////////////////////////////////////////////////
@@ -473,17 +477,25 @@ function normalize_RPG3_If(plainOp, factor1, factor2, output, indent){
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
-function normalize_Do(N, i01, factor1, factor2, result, output, indent) {
+function normalize_Do(L0, N, i01, factor1, factor2, result, output, indent) {
   var lin = "";
   var endStr = "";
 
   if (i01 !== ""){
-    if (N !== "")
-      lin += "if *in" + i01 + " = *Off\n"
-    else
-      lin += "if *in" + i01 + " = *On\n"
+    // encountered a multiline control
+    if (L0 !== ""){
+      normalize_ControlInd_Cascade(output, L0, N, i01);
+      lin = output.aboveKeywords;
+
+      // reset conditinal cascade
+      gblFirsCascade = false;
+    } else {
+      lin = `If *in` + i01 + " = ";
+      lin += (N === "")? `*On`: `*Off`;
+    }
 
     output.value = lin; 
+    
     endStr = "Endif";
   }else{
     if (factor1 === ""){
@@ -510,7 +522,32 @@ function normalize_RPG3_BoolOp(plainOp, factor1, factor2, output){
     keywrd = "Or"
   }
 
-  output.aboveKeywords = keywrd +` ` + factor1 + ` ` + op +` ` + factor2;
+  output.aboveKeywords = keywrd +  ` ` + factor1 + ` ` + op +` ` + factor2;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_ControlInd_Cascade(output, L0, N, i01) {
+  var op = "";
+  var chk = ""
+
+  switch(L0){
+    case "AN":
+      op = "And";
+      break;
+    case "OR":
+      op = "Or";
+      break;
+    default:
+      op = "If";
+      break;
+  }
+
+  if (N === "")
+    chk = "*On";
+  else
+    chk = "*Off";
+
+  output.aboveKeywords = op + ` *in` + i01 + ` = ` + chk;
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
@@ -526,6 +563,7 @@ function normalize_WhenXX(plainOp, factor1, factor2, output, indent){
   output.nextSpaces = indent;
 }
 
+// ///////////////////////////////////////////////////////////////////////////////////////////
 function normalize_MathOperations(plainOp, factor1, factor2, result, output){
   var op = "";
   let dKeyWrd = {
@@ -589,11 +627,22 @@ function normalize_SubAddDuration(plainOp, factor1, factor2, result, output){
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
-function normalize_Set_OnOff(plainOp, arrayoutput, ind1, ind2, ind3) {
+function normalize_Set_OnOff(plainOp, indent, ind1, ind2, ind3, output) {
   var value = (plainOp == "SETON")? "*On": "*Off";
-  if (ind1 != ``) arrayoutput.push(`*In` + ind1 + ` = ` + value + `;`);
-  if (ind2 != ``) arrayoutput.push(`*In` + ind2 + ` = ` + value + `;`);
-  if (ind3 != ``) arrayoutput.push(`*In` + ind3 + ` = ` + value + `;`);
+  var lidt = indentify(indent);
+  var lst = new Array();
+  var lim = 0;
+
+  if (ind1 != ``) lst.push(`*In` + ind1 + ` = ` + value);
+  if (ind2 != ``) lst.push(`*In` + ind2 + ` = ` + value);
+  if (ind3 != ``) lst.push(`*In` + ind3 + ` = ` + value);
+  lim = lst.length;
+
+  for (var i=0; i < lim; i++) {
+    output.value = ((i == 0) ? "" : lidt) + 
+                  lst[i] +
+                  ((i < lim-1) ? ";" : "");
+  }
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
@@ -643,4 +692,26 @@ function normalize_Cas(plainOp, factor1, factor2, result, indent, output) {
   var lidt02 = indentify(indent + 2);
 
   output.value = `if ` + factor1 + ` ` + op + ` ` + factor2 + `;\n` + lidt01 + `Exsr ` + result + `;\n` + lidt02 + `endif`;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function  normalize_ControlLevel_indicators(L0, N, i01, indent, output) {
+  var tmp = "";
+
+  // encountered a multiline control
+  if (gblFirsCascade == true){
+    normalize_ControlInd_Cascade(output, L0, N, i01);
+    tmp = output.aboveKeywords + ";";
+    output.aboveKeywords = "";
+  } else {
+    // single line control
+    tmp = `If *In` + i01 + (N !== "" ? ` = *Off;` : ` = *On;`);
+    gblFirsCascade = true;
+  }
+
+  // add op-code statement to if block
+  tmp += `\n  ` + indentify(indent+2) + output.value + `;\n` + indentify(indent+2) + `Endif`;
+  output.value = tmp;
+  
+  return output;
 }
