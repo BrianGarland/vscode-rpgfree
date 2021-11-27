@@ -239,6 +239,9 @@ module.exports = {
         output.value = opcode;
         output.nextSpaces = indent;
         break;
+      case `MOVEA`:
+        output.value = result + ` = ` + factor2;
+        break;
       case `MOVE`:
       case `MOVEL`:
         output.move = {
@@ -263,6 +266,8 @@ module.exports = {
         output.value = opcode + ` ` + factor2;
         output.nextSpaces = indent;
         break;
+      case 'OCCUR':
+        normalize_Occur_Op(factor1, factor2, result, ind2, output, arrayoutput);
         break;
       case `CAS`:
       case `CAB`:
@@ -342,6 +347,9 @@ module.exports = {
       case `TIME`:
         output.value = result + ` = %Time()`;
         break;
+      case `TESTB`:
+        normalize_TestB(factor2, result, ind1, ind2, ind3, output);
+        break;
       case `RETURN`:
       case `UNLOCK`:
       case `OPEN`:
@@ -407,7 +415,8 @@ module.exports = {
       output.change = true;
 
       if (!fixedSql)
-        output.value = output.value.trimRight() + `;`;
+        if (output.value !== undefined)
+          output.value = output.value.trimRight() + `;`;
     }
 
     // add conditinal operation
@@ -795,6 +804,7 @@ function normalize_ChaninRead(plainOp, factor1, factor2, result, ind1, ind2, arr
     output.value = line;
 }
 
+// ///////////////////////////////////////////////////////////////////////////////////////////
 function normalize_Z_AddSub(plainOp, factor2, result, ind1, ind2, ind3, output, arrayoutput) {
   var tmp = "";
   var op = "";
@@ -813,5 +823,40 @@ function normalize_Z_AddSub(plainOp, factor2, result, ind1, ind2, ind3, output, 
     if (ind1 !== "") arrayoutput.push(`*in` + ind1 + ` = (` + result + ` > 0);`);
     if (ind2 !== "") arrayoutput.push(`*in` + ind2 + ` = (` + result + ` < 0);`);
     if (ind3 !== "") arrayoutput.push(`*in` + ind3 + ` = (` + result + ` = 0);`);
+  }
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_TestB(factor2, result, ind1, ind2, ind3, output) {
+  var tmp = "";
+
+  tmp = `%Bitand(` + result + `: ` + factor2 + `)`;
+
+  if (ind1 !== "")
+    tmp = `*in` + ind1 + ` = (` + tmp + ` = x'00')`;
+  else {
+    if (ind3 !== "")
+      tmp = `*in` + ind3 + ` = (` + tmp + ` = ` + factor2 + `)`;
+    else
+      tmp = `*in` + ind2 + ` = (` + tmp + ` = x'00' And ` + tmp + ` <> ` + factor2 + `)`;
+  }
+  output.value = tmp;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Occur_Op(factor1, factor2, result, ind2, output, arrayoutput) {
+  var tmp;
+
+  if (factor1 === "")
+    tmp = result + ` = % Occur(` + factor2 + `)`;
+  else
+    tmp = ` = % Occur(` + factor1 + `) = ` + factor2;
+
+  if (ind2 === "")
+    output.value = tmp;
+  else {
+    output.value = ``;
+    arrayoutput.push(tmp + `;`);
+    arrayoutput.push(`*in` + ind2 ` = %Error();`);
   }
 }
