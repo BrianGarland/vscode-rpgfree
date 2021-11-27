@@ -8,8 +8,7 @@ let doingCALL = false;
 let doingENTRY = false;
 var gblFac1 = "";
 var gblFac2 = "";
-var gblFirsCascade = false;
-var gblIndent = 0;
+var gblCmd = "";
 
 let EndList = [];
 
@@ -113,12 +112,16 @@ module.exports = {
       case `ANDLT`:
       case `ANDGE`:
       case `ANDGT`:
+      case `OREQ`:
+      case `ORNE`:
+      case `ORLE`:
+      case `ORLT`:
+      case `ORGE`:
+      case `ORGT`:
         normalize_RPG3_BoolOp(plainOp, factor1, factor2, output);
-        break;    
       case `BEGSR`:
         output.value = opcode + ` ` + factor1;
         output.nextSpaces = indent;
-        gblIndent += indent;
         break;
       case `CALL`:
         factor2 = factor2.substring(1, factor2.length-1);
@@ -156,7 +159,6 @@ module.exports = {
       case `DOW`:
         output.value = opcode + ` ` + extended;
         output.nextSpaces = indent;
-        gblIndent += indent;
         EndList.push(`Enddo`);
         break;
       case `DOUNE`:
@@ -188,7 +190,6 @@ module.exports = {
       case `END`:
         if (EndList.length > 0) {
           output.beforeSpaces = -indent;
-          gblIndent -= indent;
           output.value = EndList.pop();
         } else {
           output.message = `Operation ` + plainOp + ` will not convert; no matching block found.`;
@@ -203,23 +204,19 @@ module.exports = {
       case `ENDSR`:
         output.beforeSpaces = -indent;
         output.value = opcode;
-        gblIndent -= indent;
         break;
       case `ENDSL`:
         output.beforeSpaces = -(indent*2);
-        gblIndent -= indent*2;
         output.value = opcode;
         EndList.pop();
         break;
       case `FOR`:
         output.value = opcode + ` ` + extended;
         output.nextSpaces = indent;
-        gblIndent += indent;
         break;
       case `IF`:
         output.value = opcode + ` ` + extended;
         output.nextSpaces = indent;
-        gblIndent += indent;
         EndList.push(`Endif`);
         break;
       case `IFGT`:
@@ -241,7 +238,6 @@ module.exports = {
       case `MONITOR`:
         output.value = opcode;
         output.nextSpaces = indent;
-        gblIndent += indent;
         break;
       case `MOVE`:
       case `MOVEL`:
@@ -264,18 +260,13 @@ module.exports = {
         break;
       case `ON-ERROR`:
         output.beforeSpaces = -indent;
-        gblIndent -= indent;
         output.value = opcode + ` ` + factor2;
         output.nextSpaces = indent;
-        gblIndent += indent;
         break;
-      case `OREQ`:
-      case `ORNE`:
-      case `ORLE`:
-      case `ORLT`:
-      case `ORGE`:
-      case `ORGT`:
-        normalize_RPG3_BoolOp(plainOp, factor1, factor2, output);
+        break;
+      case `CAS`:
+      case `CAB`:
+        normalize_Cas(plainOp, factor1, factor2, result, indent, ind1, ind2, ind3, output, arrayoutput);
         break;
       case `CASEQ`:
       case `CASNE`:
@@ -283,14 +274,18 @@ module.exports = {
       case `CASLT`:
       case `CASGE`:
       case `CASGT`:
-        normalize_Cas(plainOp, factor1, factor2, result, indent, output);
+      case `CABEQ`:
+      case `CABNE`:
+      case `CABLE`:
+      case `CABLT`:
+      case `CABGE`:
+      case `CABGT`:
+        normalize_CasXX(plainOp, factor1, factor2, result, indent, output, arrayoutput);
         break;
       case `OTHER`:
         output.beforeSpaces = -indent;
-        gblIndent -= indent;
         output.value = opcode;
         output.nextSpaces = indent;
-        gblIndent += indent;
         break;
       case `OUT`:
       case `IN`:
@@ -323,7 +318,7 @@ module.exports = {
         break;
       case `SETOFF`:
       case `SETON`:
-        normalize_Set_OnOff(plainOp, indent, ind1, ind2, ind3, output);
+          normalize_Set_OnOff(plainOp, indent, ind1, ind2, ind3, output, arrayoutput);
         break;
       case `SORTA`:
       case `EVALR`:
@@ -361,7 +356,6 @@ module.exports = {
         output.beforeSpaces = -indent;
         output.value = opcode + ` ` + extended;
         output.nextSpaces = indent;
-        gblIndent += indent;
         break;
       case `WHENEQ`:
       case `WHENNE`:
@@ -382,10 +376,8 @@ module.exports = {
         output.value = result + ` = %XFOOT(` + factor2 + `)`;
         break;
       case `Z-ADD`:
-        output.value = result + ` = ` + factor2;
-        break;
       case `Z-SUB`: 
-        output.value = result + ` = 0 - ` + factor2;
+          normalize_Z_AddSub(plainOp, factor2, result, ind1, ind2, ind3, output, arrayoutput);
         break;
 
       default:
@@ -395,6 +387,7 @@ module.exports = {
           } else {
             if (L0 !== `` || i01 !== ``){
               normalize_ControlInd_Cascade(output, L0, N, i01);
+              doAddAfter = true;
             }
             else{
               //Set to blank
@@ -421,7 +414,8 @@ module.exports = {
     // DO NOT DO when a Do block is encountered
     // Do blocks are handled with  normalize_DO
     if (i01 !== `` && plainOp !== `DO`) {
-      return normalize_ControlLevel_indicators(L0, N, i01, indent, output);
+      normalize_ControlLevel_indicators(L0, N, i01, plainOp, indent, output, arrayoutput);
+      doAddAfter = true;
     }
 
     if (arrayoutput.length > 0) {
@@ -434,7 +428,10 @@ module.exports = {
         }
         output.arrayoutput = arrayoutput;
       } else {
-        output.arrayoutput = [output.value].concat(arrayoutput);
+        if (output.value !== "")
+          output.arrayoutput = [output.value].concat(arrayoutput);
+        else
+          output.arrayoutput = arrayoutput;
         output.value = ``;
       }
     }
@@ -444,11 +441,10 @@ module.exports = {
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
 function indentify(num){
-  var ret = "";
-  for (var i=0; i <(num/4); i++)
-    ret += "    ";
-  return ret;
+  var ret =  ` `;
+  return ret.repeat(num);
 }
+
 // ///////////////////////////////////////////////////////////////////////////////////////////
 function getRpg3CompareOp(opKeyWord){
   let Drpg3OP = {
@@ -474,12 +470,44 @@ function getRpg3CompareOp(opKeyWord){
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
+function getIndicatorComparisonOp(ind1, ind2, ind3){
+  var chkStr = "";
+  var op = "";
+
+  chkStr += (ind1 != "")?"1":"0";
+  chkStr += (ind2 != "")?"1":"0";
+  chkStr += (ind3 != "")?"1":"0";
+
+  switch(chkStr){
+    case "001":
+      op = "=";
+      break;
+    case "010":
+      op = ">";
+      break;
+    case "011":
+      op = ">=";
+      break;
+    case "100":
+      op = "<";
+      break;
+    case "101":
+      op = "<=";
+      break;
+    case "110":
+      op = "<>";
+      break;
+  }
+
+  return op;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
 function normalize_RPG3_If(plainOp, factor1, factor2, output, indent){
   var op = getRpg3CompareOp(plainOp);
 
   output.value = `If ` + factor1 + ` ` + op + ` ` + factor2;
   output.nextSpaces = indent;
-  gblIndent += indent;
   EndList.push(`Endif`);
 }
 
@@ -494,7 +522,6 @@ function normalize_DoWU(plainOp, factor1, factor2, output, indent) {
 
   output.value = keywrd + ` ` + factor1 + ` ` + getRpg3CompareOp(plainOp) + ` ` + factor2;
   output.nextSpaces = indent;
-  gblIndent += indent;
   EndList.push(`Enddo`);
 }
 
@@ -508,9 +535,7 @@ function normalize_Do(L0, N, i01, factor1, factor2, result, output, indent) {
     if (L0 !== ""){
       normalize_ControlInd_Cascade(output, L0, N, i01);
       lin = output.aboveKeywords;
-
-      // reset conditinal cascade
-      gblFirsCascade = false;
+      gblCmd = "";
     } else {
       lin = `If *in` + i01 + " = ";
       lin += (N === "")? `*On`: `*Off`;
@@ -530,14 +555,14 @@ function normalize_Do(L0, N, i01, factor1, factor2, result, output, indent) {
   }
 
   output.nextSpaces = indent;
-  gblIndent += indent;
   EndList.push(endStr);
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
-function normalize_RPG3_BoolOp(plainOp, factor1, factor2, output){
+function normalize_RPG3_BoolOp(plainOp, factor1, factor2, output) {
   var op = getRpg3CompareOp(plainOp);
   var keywrd = "";
+  var tmp = "";
 
   if (plainOp.substr(0, 2) == "AN"){
     keywrd = "And"
@@ -545,13 +570,15 @@ function normalize_RPG3_BoolOp(plainOp, factor1, factor2, output){
     keywrd = "Or"
   }
 
-  output.aboveKeywords = keywrd +  ` ` + factor1 + ` ` + op +` ` + factor2;
+  tmp = keywrd + ` ` + factor1 + ` ` + op + ` ` + factor2;
+  output.aboveKeywords = tmp;
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
 function normalize_ControlInd_Cascade(output, L0, N, i01) {
   var op = "";
-  var chk = ""
+  var chk = "";
+  var tmp = "";
 
   switch(L0){
     case "AN":
@@ -570,7 +597,11 @@ function normalize_ControlInd_Cascade(output, L0, N, i01) {
   else
     chk = "*Off";
 
-  output.aboveKeywords = op + ` *in` + i01 + ` = ` + chk;
+  tmp += op + ` *in` + i01 + ` = ` + chk + ` `;
+  if ((gblCmd.includes(tmp)) === false)
+    gblCmd += tmp;
+
+  output.remove = true;
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
@@ -585,7 +616,6 @@ function normalize_WhenXX(plainOp, factor1, factor2, output, indent){
   output.beforeSpaces = -indent;
   output.value = `When ` + factor1 + ` ` + op + ` ` + factor2;
   output.nextSpaces = indent;
-  gblIndent += indent;
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
@@ -652,22 +682,16 @@ function normalize_SubAddDuration(plainOp, factor1, factor2, result, output){
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
-function normalize_Set_OnOff(plainOp, indent, ind1, ind2, ind3, output) {
+function normalize_Set_OnOff(plainOp, indent, ind1, ind2, ind3, output, arrayoutput) {
   var value = (plainOp == "SETON")? "*On": "*Off";
-  var lidt = indentify(indent);
-  var lst = new Array();
-  var lim = 0;
 
-  if (ind1 != ``) lst.push(`*In` + ind1 + ` = ` + value);
-  if (ind2 != ``) lst.push(`*In` + ind2 + ` = ` + value);
-  if (ind3 != ``) lst.push(`*In` + ind3 + ` = ` + value);
-  lim = lst.length;
+  // set array output
+  if (ind1 != ``) arrayoutput.push(`*In` + ind1 + ` = ` + value + `;`);
+  if (ind2 != ``) arrayoutput.push(`*In` + ind2 + ` = ` + value + `;`);
+  if (ind3 != ``) arrayoutput.push(`*In` + ind3 + ` = ` + value + `;`);
 
-  for (var i=0; i < lim; i++) {
-    output.value = ((i == 0) ? "" : lidt) + 
-                  lst[i] +
-                  ((i < lim-1) ? ";" : "");
-  }
+  // clear output value
+  output.value = ``;
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
@@ -678,68 +702,77 @@ function normalize_TwoItemBIF(plainOp, factor1, factor2, result, output) {
 // ///////////////////////////////////////////////////////////////////////////////////////////
 function normalize_Compare(factor1, factor2, ind1, ind2, ind3, output) {
   var op = "";
-  var chkStr = "";
   var indicator = "";
 
-  chkStr += (ind1 != "")?"1":"0";
-  chkStr += (ind2 != "")?"1":"0";
-  chkStr += (ind3 != "")?"1":"0";
   indicator = (ind1 + ind2 + ind3).trim().substr(0,2);
-
-  switch(chkStr){
-    case "001":
-      op = "=";
-      break;
-    case "010":
-      op = ">";
-      break;
-    case "011":
-      op = ">=";
-      break;
-    case "100":
-      op = "<";
-      break;
-    case "101":
-      op = "<=";
-      break;
-    case "110":
-      op = "<>";
-      break;
-  }
+  op = getIndicatorComparisonOp(ind1, ind2, ind3);
   
   output.value = `*in` + indicator + ` = (` + factor1 + ` ` + op + ` ` + factor2 + `)`;
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
-function normalize_Cas(plainOp, factor1, factor2, result, indent, output) {
+function normalize_CasXX(plainOp, factor1, factor2, result, indent, output, arrayoutput) {
   var op = getRpg3CompareOp(plainOp);
-  var lidt01 = indentify(indent + 3);
-  var lidt02 = indentify(indent + 2);
+  var locInd = indentify(indent);
 
-  output.value = `if ` + factor1 + ` ` + op + ` ` + factor2 + `;\n` + lidt01 + `Exsr ` + result + `;\n` + lidt02 + `endif`;
+  arrayoutput.push(`if ` + factor1 + ` ` + op + ` ` + factor2);
+  
+  // apply the body of the if statement
+  // CAB gets a comment because GOTO is not aloud 
+  if (plainOp.substr(0,3) == `CAS`) {
+    arrayoutput.push(locInd + `Exsr ` + result + `;`);
+  } else {
+    arrayoutput.push(locInd + `// goto ` + result)
+  }
+
+  arrayoutput.push(`Endif;`);
+  output.value = ``;
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////
-function  normalize_ControlLevel_indicators(L0, N, i01, indent, output) {
+function normalize_Cas(plainOp, factor1, factor2, result, indent, ind1, ind2, ind3, output, arrayoutput) {
+  var locInd = indentify(indent);
+  var op = getIndicatorComparisonOp(ind1, ind2, ind3);
+
+  arrayoutput.push(`if ` + factor1 + ` ` + op + ` ` + factor2);
+  
+  // apply the body of the if statement
+  // CAB gets a comment because GOTO is not aloud 
+  if (plainOp == `CAS`) {
+    arrayoutput.push(locInd + `Exsr ` + result + `;`);
+  } else {
+    arrayoutput.push(locInd + `// goto ` + result)
+  }
+
+  arrayoutput.push(`Endif;`);
+  output.value = ``;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_ControlLevel_indicators(L0, N, i01, plainOp, indent, output, arrayoutput) {
   var tmp = "";
+  var locInd = indentify(indent);
 
   // encountered a multiline control
-  if (gblFirsCascade == true){
-    normalize_ControlInd_Cascade(output, L0, N, i01);
-    tmp = output.aboveKeywords + ";";
-    output.aboveKeywords = "";
+  normalize_ControlInd_Cascade(output, L0, N, i01);
+
+  if (gblCmd !== "" && plainOp !== ""){
+    tmp = gblCmd.trim() + `;`;
+    gblCmd = "";
   } else {
-    // single line control
-    tmp = `If *In` + i01 + (N !== "" ? ` = *Off;` : ` = *On;`);
-    gblFirsCascade = true;
+    // do nothing, line is incompleate
+    output.value = ``;
+    return;
   }
 
   // add op-code statement to if block
-  tmp += `\n  ` + indentify(indent+2) + output.value + `;\n` + indentify(indent+2) + `Endif`;
-  output.value = tmp;
-  
-  return output;
+  arrayoutput.push(tmp);
+  arrayoutput.push(locInd + output.value);
+  arrayoutput.push(`Endif`);
+  output.value = ``;
+  output.remove = false;
 }
+
 // ///////////////////////////////////////////////////////////////////////////////////////////
 function normalize_ChaninRead(plainOp, factor1, factor2, result, ind1, ind2, arrayoutput, output) {
   var line = ``;
@@ -754,11 +787,31 @@ function normalize_ChaninRead(plainOp, factor1, factor2, result, ind1, ind2, arr
   line = line.trim();
 
   if (ind1 !== "")
-    arrayoutput.push(`*in` + ind1 + ` = (%found() = *Off);`)
-    //line += ";\n" + indentify(gblIndent) + `*in` + ind1 + ` = (%found() = *Off)`;
+    arrayoutput.push(`*in` + ind1 + ` = (%found() = *Off);`);
   
   if (ind2 !== "")
     arrayoutput.push(`*in` + ind2 + ` = %error();`);
   
     output.value = line;
+}
+
+function normalize_Z_AddSub(plainOp, factor2, result, ind1, ind2, ind3, output, arrayoutput) {
+  var tmp = "";
+  var op = "";
+  tmp = ind1.trim() + ind2.trim() + ind3.trim();
+
+  if (plainOp == `Z-ADD`)
+    op = ` = `;
+  else
+    op = ` = 0 - `
+
+  if (tmp === "")
+    output.value = result + op + factor2;
+  else {
+    output.value =``;
+    arrayoutput.push(result + op + factor2 + `;`);
+    if (ind1 !== "") arrayoutput.push(`*in` + ind1 + ` = (` + result + ` > 0);`);
+    if (ind2 !== "") arrayoutput.push(`*in` + ind2 + ` = (` + result + ` < 0);`);
+    if (ind3 !== "") arrayoutput.push(`*in` + ind3 + ` = (` + result + ` = 0);`);
+  }
 }
