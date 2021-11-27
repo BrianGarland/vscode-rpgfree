@@ -5,14 +5,14 @@ const specs = {
   'H': require(`./specs/H`),
   'P': require(`./specs/P`)
 };
-  
+
 class Message {
   constructor(line, text) {
     this.line = line;
     this.text = text;
   }
 }
-  
+
 module.exports = class RpgleFree {
   constructor(lines, indent) {
     this.currentLine = -1;
@@ -25,24 +25,24 @@ module.exports = class RpgleFree {
         len: 10
       }
     };
-  
+
     this.messages = [];
   }
-  
+
   addVar(obj) {
     if (obj.standalone === true)
       this.vars[obj.name.toUpperCase()] = obj;
   }
-  
+
   suggestMove(obj) {
     let result = {
       change: false,
       value: ``
     }
-  
+
     let sourceVar = this.vars[obj.source.toUpperCase()];
     let targetVar = this.vars[obj.target.toUpperCase()];
-  
+
     if (sourceVar === undefined) {
       if (obj.source.startsWith(`'`)) { //This means it's a character
         sourceVar = {
@@ -50,14 +50,14 @@ module.exports = class RpgleFree {
           type: `A`,
           len: (obj.source.length - 2)
         }
-  
+
         if (targetVar === undefined) {
           //Basically.. if we're assuming that if the targetvar
           //is undefined (probably in a file) but we are moving
           //character date into it, let's assume it's a char field
-  
+
           this.messages.push(new Message(this.currentLine, `Assuming ` + obj.target + ` is a character field for MOVE/MOVEL operation.`));
-  
+
           targetVar = {
             name: obj.target,
             type: `A`
@@ -88,7 +88,7 @@ module.exports = class RpgleFree {
           break;
       }
     }
-  
+
     if (targetVar === undefined && sourceVar !== undefined) {
       this.messages.push(new Message(this.currentLine, `Assuming ` + obj.target + ` is a type '` + sourceVar.type + `' for MOVE/MOVEL operation.`));
       //Here we are assuming the target type based on the source type :)
@@ -97,15 +97,15 @@ module.exports = class RpgleFree {
         type: sourceVar.type
       }
     }
-  
+
     if (targetVar !== undefined) {
       let assignee = targetVar.name;
-  
+
       switch (targetVar.type) {
         case `S`: //numeric (not specific to packed or zoned)
           result.value = assignee + ` = ` + sourceVar.name;
           break;
-          
+
         case `D`: //date
           if (sourceVar.name.toUpperCase() === `*DATE`) {
             result.value = targetVar.name + ` = ` + sourceVar.name;
@@ -116,7 +116,7 @@ module.exports = class RpgleFree {
               result.value = targetVar.name + ` = %Date(` + sourceVar.name + `:` + obj.attr + `)`;
           }
           break;
-    
+
         case `A`: //character
           if (obj.padded) {
             if (obj.dir === `MOVEL`)
@@ -130,38 +130,38 @@ module.exports = class RpgleFree {
               else
                 assignee = `%Subst(` + targetVar.name + `:1:%Len(` + sourceVar.name + `))`;
             else
-            if (sourceVar.const)
-              assignee = `%Subst(` + targetVar.name + `:%Len(` + targetVar.name + `)-` + sourceVar.len + `)`;
-            else
-              assignee = `%Subst(` + targetVar.name + `:%Len(` + targetVar.name + `)-%Len(` + sourceVar.name + `))`;
+              if (sourceVar.const)
+                assignee = `%Subst(` + targetVar.name + `:%Len(` + targetVar.name + `)-` + sourceVar.len + `)`;
+              else
+                assignee = `%Subst(` + targetVar.name + `:%Len(` + targetVar.name + `)-%Len(` + sourceVar.name + `))`;
           }
-    
+
           switch (sourceVar.type) {
-    
-          case `A`:
-            result.value = assignee + ` = ` + sourceVar.name;
-            break;
-    
-          case `S`:
-          case `P`:
-          case `I`:
-          case `F`:
-          case `U`:
-            result.value = assignee + ` = %Char(` + sourceVar.name + `)`;
-            break;
-    
-          case `D`:
-          case `T`:
-            if (obj.attr !== ``)
-              result.value = assignee + ` = %Char(` + sourceVar.name + `:` + obj.attr + `)`;
-            else
+
+            case `A`:
+              result.value = assignee + ` = ` + sourceVar.name;
+              break;
+
+            case `S`:
+            case `P`:
+            case `I`:
+            case `F`:
+            case `U`:
               result.value = assignee + ` = %Char(` + sourceVar.name + `)`;
+              break;
+
+            case `D`:
+            case `T`:
+              if (obj.attr !== ``)
+                result.value = assignee + ` = %Char(` + sourceVar.name + `:` + obj.attr + `)`;
+              else
+                result.value = assignee + ` = %Char(` + sourceVar.name + `)`;
           }
-    
+
           break;
       }
     }
-  
+
     if (result.value !== ``) {
       result.change = true;
       result.value = result.value.trimRight() + `;`;
@@ -170,7 +170,7 @@ module.exports = class RpgleFree {
     }
     return result;
   }
-  
+
   parse() {
     let length = this.lines.length;
     let line, nextline, comment, isMove, hasKeywords, ignoredColumns, spec, spaces = 0;
@@ -186,11 +186,11 @@ module.exports = class RpgleFree {
 
       // check if RPG source starts at col 6
       // if not add space
-      if (this.lines[index].substr(0,5).trim !== "")
+      if (this.lines[index].substr(0, 5).trim !== "")
         this.lines[index] = "     " + this.lines[index];
-        
+
       this.currentLine = index;
-  
+
       comment = ``;
       line = ` ` + this.lines[index].padEnd(80);
 
@@ -200,49 +200,49 @@ module.exports = class RpgleFree {
       }
 
       ignoredColumns = line.substr(1, 4);
-      
-      if (this.lines[index+1]) {
-        nextline = ` ` + this.lines[index+1].padEnd(80);
-        if (nextline.length > 81) 
+
+      if (this.lines[index + 1]) {
+        nextline = ` ` + this.lines[index + 1].padEnd(80);
+        if (nextline.length > 81)
           nextline = nextline.substr(0, 81);
       } else
         nextline = ``;
-  
+
       spec = line[6].toUpperCase();
 
       switch (line[7]) {
         case `/`:
-          let test = line.substr(8,8).trim().toUpperCase();
+          let test = line.substr(8, 8).trim().toUpperCase();
           switch (test) {
-          case `EXEC SQL`:
-            // deal with embedded SQL just like normal c-specs
-            fixedSql = true;
-            spec = `C`;
-            break;
-          case `END-EXEC`:  
-            // deal with embedded SQL just like normal c-specs
-            fixedSql = false;
-            spec = `C`;
-            break;
-          case `FREE`:
-          case `END-FREE`:
-            spec = ``;
-            this.lines.splice(index, 1);
-            index--;
-            break;
-          default:
-            spec = ``;
-            this.lines[index] = ``.padEnd(7) + ``.padEnd(spaces) + line.substr(7).trim();
-            break;
+            case `EXEC SQL`:
+              // deal with embedded SQL just like normal c-specs
+              fixedSql = true;
+              spec = `C`;
+              break;
+            case `END-EXEC`:
+              // deal with embedded SQL just like normal c-specs
+              fixedSql = false;
+              spec = `C`;
+              break;
+            case `FREE`:
+            case `END-FREE`:
+              spec = ``;
+              this.lines.splice(index, 1);
+              index--;
+              break;
+            default:
+              spec = ``;
+              this.lines[index] = ``.padEnd(7) + ``.padEnd(spaces) + line.substr(7).trim();
+              break;
           }
           break;
 
         case `*`:
           // check for RPG style comments
           spec = ``;
-      
+
           comment = line.substr(8).trim();
-          if (comment !== ``){
+          if (comment !== ``) {
             var idx = comment.indexOf("*") + 1;
             this.lines[index] = ``.padEnd(8) + ``.padEnd(spaces) + `// ` + comment.substr(idx);
           }
@@ -256,33 +256,33 @@ module.exports = class RpgleFree {
             spec = `C`;
           break;
       }
-  
+
       if (specs[spec] !== undefined) {
         result = specs[spec].Parse(line, this.indent, wasSub);
-  
+
         if (result.isSub === true) {
           if (result.isHead === true && wasSub && !wasLIKEDS) {
-            endBlock(this.lines,this.indent);
+            endBlock(this.lines, this.indent);
           }
           wasSub = true;
           lastBlock = result.blockType;
-            
+
         } else if (result.isSub === undefined && wasSub) {
-          endBlock(this.lines,this.indent);
+          endBlock(this.lines, this.indent);
         }
 
         wasLIKEDS = (result.isLIKEDS === true);
-  
+
         if (result.var !== undefined)
           this.addVar(result.var);
-  
+
         isMove = (result.move !== undefined);
         hasKeywords = (result.aboveKeywords !== undefined);
-  
+
         if (result.message) {
           this.messages.push(new Message(this.currentLine, result.message));
         }
-  
+
         switch (true) {
           case isMove:
             result = this.suggestMove(result.move);
@@ -290,16 +290,19 @@ module.exports = class RpgleFree {
               this.lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
             }
             break;
-    
+
           case hasKeywords:
-            let endStmti = this.lines[index - 1].indexOf(`;`);
-            let endStmt = this.lines[index - 1].substr(endStmti); //Keep those end line comments :D
-    
-            this.lines[index - 1] = this.lines[index - 1].substr(0, endStmti) + ` ` + result.aboveKeywords + endStmt;
+  
+            var curLine = this.lines[index - 1]; // added to reduce calls to the lines array
+            let endStmti = curLine.indexOf(`;`);
+            let endStmt = curLine.substr(endStmti); //Keep those end line comments :D
+
+            curLine = curLine.substr(0, endStmti) + ` ` + result.aboveKeywords + endStmt;
+            this.lines[index - 1] = curLine;
             this.lines.splice(index, 1);
             index--;
             break;
-    
+
           case result.remove:
             if (comment.trim() !== ``) {
               this.lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + `// ` + comment;
@@ -309,44 +312,44 @@ module.exports = class RpgleFree {
               length++;
             }
             break;
-    
+
           case result.change:
             spaces += result.beforeSpaces;
-    
+
             if (result.arrayoutput) {
-    
+
               this.lines.splice(index, 1);
-    
+
               for (let y in result.arrayoutput) {
                 result.arrayoutput[y] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.arrayoutput[y];
-    
+
                 this.lines.splice(index, 0, result.arrayoutput[y]);
                 index++;
                 length++;
               }
-    
+
               index--;
-    
+
             } else {
 
               this.lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
               if (comment.trim() !== ``) {
                 this.lines[index] += ` //` + comment;
               }
-              
+
             }
-                
+
             spaces += result.nextSpaces;
             break;
         }
-  
+
       } else {
         if (wasSub) {
           endBlock(this.lines, this.indent);
         }
       }
     }
-  
+
     function endBlock(lines, indent) {
       spaces -= indent;
       if (lastBlock !== undefined) {
