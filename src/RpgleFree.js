@@ -314,7 +314,7 @@ module.exports = class RpgleFree {
             break;
 
           case result.change:
-            spaces += result.beforeSpaces;
+            spaces = assignIndent(spaces, result.beforeSpaces);
 
             if (result.arrayoutput) {
 
@@ -339,7 +339,7 @@ module.exports = class RpgleFree {
 
             }
 
-            spaces += result.nextSpaces;
+            spaces = assignIndent(spaces, result.nextSpaces);
             break;
         }
 
@@ -351,7 +351,7 @@ module.exports = class RpgleFree {
     }
 
     function endBlock(lines, indent) {
-      spaces -= indent;
+      spaces = assignIndent(spaces, (indent * -1));
       if (lastBlock !== undefined) {
         lines.splice(index, 0, ``.padEnd(8) + ``.padEnd(spaces) + `End-` + lastBlock + `;`);
         index++;
@@ -360,5 +360,16 @@ module.exports = class RpgleFree {
       wasSub = false;
     }
 
+    function assignIndent(checkSpace, indentValue) {
+        var NewSpace = 0;
+
+        NewSpace = checkSpace + indentValue;
+        
+        // add or remove space only for positive values
+        if (NewSpace < 1)
+          return 0;
+
+        return NewSpace;
+    }
   }
 }
