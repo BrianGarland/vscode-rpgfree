@@ -1,7 +1,14 @@
+const { S_IWOTH } = require("constants");
+const { openSync } = require("fs");
+const { kill } = require("process");
+
 let LastKey = ``;
 let Lists = {};
 let doingCALL = false;
 let doingENTRY = false;
+var gblFac1 = "";
+var gblFac2 = "";
+var gblCmd = "";
 
 let EndList = [];
 
@@ -16,8 +23,14 @@ module.exports = {
       nextSpaces: 0
     };
 
+    var doAddAfter = false;
     let spaces = 0;
     let sep = ``;
+
+    //L0N01
+    let L0 = input.substr(7, 2).trim();
+    let N = input.substr(9, 1).trim();
+    let i01 = input.substr(10, 2).trim();
 
     let factor1 = input.substr(12, 14).trim();
     let opcode = input.substr(26, 10).trim().toUpperCase();
@@ -48,7 +61,7 @@ module.exports = {
 
     if (doingCALL && plainOp != `PARM`) {
       doingCALL = false;
-      arrayoutput.push(LastKey + `(` + Lists[LastKey].join(`:`) + `);`);
+      arrayoutput.push(LastKey + `(` + Lists[LastKey].join(`: `) + `);`);
     }
     if (doingENTRY && plainOp != `PARM`) 
       doingENTRY = false;
@@ -73,6 +86,8 @@ module.exports = {
       fixedSql = true;
 
     } else {
+      // ----------------------------------------------------------------------------
+      // primary  converion switch
       switch (plainOp) {
       case `PLIST`:
       case `KLIST`:
@@ -91,57 +106,19 @@ module.exports = {
         Lists[LastKey].push(result);
         output.remove = true;
         break;
-      case `ACQ`:
-        output.value = opcode + ` ` + factor1 + ` ` + factor2;
-        break;
-      case `ADD`:
-        if (factor1)
-          output.value = result + ` = ` + factor1 + ` + ` + factor2;
-        else
-          output.value = result + ` = ` + result + ` + ` + factor2;
-        break;
-      case `ADDDUR`:
-        // We are adding a duration to a date
-        switch (factor2.split(`:`)[1]) {
-        case `*DAYS`:
-        case `*DAY`:
-        case `*D`:
-          period = `%DAYS`;
-          break;
-        case `*MONTHS`:
-        case `*MONTH`:
-        case `*M`:
-          period = `%MONTHS`;
-          break;
-        case `*YEARS`:
-        case `*YEAR`:
-        case `*Y`:
-          period = `%YEARS`;        
-          break;
-        }
-        if (factor1)
-          output.value = result + ` = ` + factor1 + ` + ` + period + `(` + factor2.split(`:`)[0] + `)`;
-        else
-          output.value = result + ` += ` + period + `(` + factor2.split(`:`)[0] + `)`;
-        break;
       case `ANDEQ`:
-        output.aboveKeywords = `AND ` + factor1 + ` = ` + factor2;
-        break;
       case `ANDNE`:
-        output.aboveKeywords = `AND ` + factor1 + ` <> ` + factor2;
-        break;
       case `ANDLE`:
-        output.aboveKeywords = `AND ` + factor1 + ` <= ` + factor2;
-        break;
       case `ANDLT`:
-        output.aboveKeywords = `AND ` + factor1 + ` < ` + factor2;
-        break;
       case `ANDGE`:
-        output.aboveKeywords = `AND ` + factor1 + ` >= ` + factor2;
-        break;
       case `ANDGT`:
-        output.aboveKeywords = `AND ` + factor1 + ` > ` + factor2;
-        break;    
+      case `OREQ`:
+      case `ORNE`:
+      case `ORLE`:
+      case `ORLT`:
+      case `ORGE`:
+      case `ORGT`:
+        normalize_RPG3_BoolOp(plainOp, factor1, factor2, output);
       case `BEGSR`:
         output.value = opcode + ` ` + factor1;
         output.nextSpaces = indent;
@@ -161,6 +138,7 @@ module.exports = {
         break;
       case `CALLB`:
       case `CALLP`:
+      case `EVAL`:
         output.value = extended;
         break;
       case `CAT`:
@@ -170,34 +148,12 @@ module.exports = {
         }
         output.value = result + ` = ` + factor1 + `+ '` + ``.padStart(spaces) + `' + ` + factor2;
         break;
-      case `CHAIN`:
-        if (Lists[factor1.toUpperCase()])
-          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
-        else
-          output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
-        break;
-      case `CHECK`:
-        output.value = result + ` = %Check(` + factor1 + `:` + factor2 + `)`;
-        break;
-      case `CHECKR`:
-        output.value = result + ` = %CheckR(` + factor1 + `:` + factor2 + `)`;
-        break;
       case `CLEAR`:
-        output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
-        break;
-      case `CLOSE`:
-        output.value = opcode + ` ` + factor2;
-        break;
-      case `DELETE`:
-        output.value = opcode + ` ` + factor2;
-        break;
-      case `DIV`:
-        output.value = result + ` = ` + factor1 + ` / ` + factor2;
+      case `RESET`:
+        output.value = normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output);
         break;
       case `DO`:
-        output.value = `For ` + result + ` = ` + factor1 + ` to ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
+        normalize_Do(L0, N, i01, factor1, factor2, result, output, indent);
         break;
       case `DOU`:
       case `DOW`:
@@ -205,65 +161,19 @@ module.exports = {
         output.nextSpaces = indent;
         EndList.push(`Enddo`);
         break;
-      case `DOUEQ`:
-        output.value = `Dou ` + factor1 + ` = ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOUNE`:
-        output.value = `Dou ` + factor1 + ` <> ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOUGT`:
-        output.value = `Dou ` + factor1 + ` > ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOULT`:
-        output.value = `Dou ` + factor1 + ` < ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOUGE`:
-        output.value = `Dou ` + factor1 + ` >= ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOULE`:
-        output.value = `Dou ` + factor1 + ` <= ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
+      case `DOUEQ`:
       case `DOWEQ`:
-        output.value = `Dow ` + factor1 + ` = ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOWNE`:
-        output.value = `Dow ` + factor1 + ` <> ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOWGT`:
-        output.value = `Dow ` + factor1 + ` > ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOWLT`:
-        output.value = `Dow ` + factor1 + ` < ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOWGE`:
-        output.value = `Dow ` + factor1 + ` >= ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
-        break;
       case `DOWLE`:
-        output.value = `Dow ` + factor1 + ` <= ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
+        normalize_DoWU(plainOp, factor1, factor2, output, indent);
         break;
       case `DSPLY`:
         output.value = opcode + ` (` + factor1 + `) ` + factor2 + ` ` + result;
@@ -272,10 +182,6 @@ module.exports = {
         output.value = opcode + ` ` + factor1;
         break;
       case `ELSE`:
-        output.beforeSpaces = -indent;
-        output.value = opcode + ` ` + factor2;
-        output.nextSpaces = indent;
-        break;
       case `ELSEIF`:
         output.beforeSpaces = -indent;
         output.value = opcode + ` ` + factor2;
@@ -289,46 +195,20 @@ module.exports = {
           output.message = `Operation ` + plainOp + ` will not convert; no matching block found.`;
         }
         break;
+      case `COMP`:
+        normalize_Compare(factor1, factor2, ind1, ind2, ind3, output);
+        break;
       case `ENDDO`:
-        output.beforeSpaces = -indent;
-        output.value = opcode;
-        EndList.pop()
-        break;
       case `ENDIF`:
-        output.beforeSpaces = -indent;
-        output.value = opcode;
-        EndList.pop()
-        break;
       case `ENDMON`:
+      case `ENDSR`:
         output.beforeSpaces = -indent;
         output.value = opcode;
         break;
       case `ENDSL`:
         output.beforeSpaces = -(indent*2);
         output.value = opcode;
-        EndList.pop()
-        break;
-      case `ENDSR`:
-        output.beforeSpaces = -indent;
-        output.value = opcode;
-        break;
-      case `EVAL`:
-        output.value = extended;
-        break;
-      case `EVALR`:
-        output.value = opcode + ` ` + extended;
-        break;
-      case `EVAL-CORR`:
-        output.value = opcode + ` ` + extended;
-        break;
-      case `EXCEPT`:
-        output.value = opcode + ` ` + factor2;
-        break;
-      case `EXFMT`:
-        output.value = opcode + ` ` + factor2;
-        break;
-      case `EXSR`:
-        output.value = opcode + ` ` + factor2;
+        EndList.pop();
         break;
       case `FOR`:
         output.value = opcode + ` ` + extended;
@@ -340,44 +220,15 @@ module.exports = {
         EndList.push(`Endif`);
         break;
       case `IFGT`:
-        output.value = `If ` + factor1 + ` > ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Endif`);
-        break;
       case `IFLT`:
-        output.value = `If ` + factor1 + ` < ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Endif`);
-        break;
       case `IFEQ`:
-        output.value = `If ` + factor1 + ` = ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Endif`);
-        break;
       case `IFNE`:
-        output.value = `If ` + factor1 + ` <> ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Endif`);
-        break;
       case `IFGE`:
-        output.value = `If ` + factor1 + ` >= ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Endif`);
-        break;
       case `IFLE`:
-        output.value = `If ` + factor1 + ` <= ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Endif`);
-        break;
-      case `IN`:
-        output.value = opcode + ` ` + factor1 + ` ` + factor2;
+        normalize_RPG3_If(plainOp, factor1, factor2, output, indent);
         break;
       case `ITER`:
-        output.value = opcode;
-        break;
       case `LEAVE`:
-        output.value = opcode;
-        break;
       case `LEAVESR`:
         output.value = opcode;
         break;
@@ -387,6 +238,9 @@ module.exports = {
       case `MONITOR`:
         output.value = opcode;
         output.nextSpaces = indent;
+        break;
+      case `MOVEA`:
+        output.value = result + ` = ` + factor2;
         break;
       case `MOVE`:
       case `MOVEL`:
@@ -399,69 +253,61 @@ module.exports = {
         }
         break;
       case `MULT`:
-        output.value = result + ` = ` + factor1 + ` * ` + factor2;
+      case `SUB`: 
+      case `DIV`:
+      case `ADD`:
+        normalize_MathOperations(plainOp, factor1, factor2, result, output);
+        break;
+      case `MVR`:
+        output.value = result + ` = %rem(` + gblFac1+ `: ` + gblFac2 + `)`;
         break;
       case `ON-ERROR`:
         output.beforeSpaces = -indent;
         output.value = opcode + ` ` + factor2;
         output.nextSpaces = indent;
         break;
-      case `OPEN`:
-        output.value = opcode + ` ` + factor2;
+      case 'OCCUR':
+        normalize_Occur_Op(factor1, factor2, result, ind2, output, arrayoutput);
         break;
-      case `OREQ`:
-        output.aboveKeywords = `OR ` + factor1 + ` = ` + factor2;
+      case `CAS`:
+      case `CAB`:
+        normalize_Cas(plainOp, factor1, factor2, result, indent, ind1, ind2, ind3, output, arrayoutput);
         break;
-      case `ORNE`:
-        output.aboveKeywords = `OR ` + factor1 + ` <> ` + factor2;
+      case `CASEQ`:
+      case `CASNE`:
+      case `CASLE`:
+      case `CASLT`:
+      case `CASGE`:
+      case `CASGT`:
+      case `CABEQ`:
+      case `CABNE`:
+      case `CABLE`:
+      case `CABLT`:
+      case `CABGE`:
+      case `CABGT`:
+        normalize_CasXX(plainOp, factor1, factor2, result, indent, output, arrayoutput);
         break;
-      case `ORLE`:
-        output.aboveKeywords = `OR ` + factor1 + ` <= ` + factor2;
-        break;
-      case `ORLT`:
-        output.aboveKeywords = `OR ` + factor1 + ` < ` + factor2;
-        break;
-      case `ORGE`:
-        output.aboveKeywords = `OR ` + factor1 + ` >= ` + factor2;
-        break;
-      case `ORGT`:
-        output.aboveKeywords = `OR ` + factor1 + ` > ` + factor2;
-        break;    
       case `OTHER`:
         output.beforeSpaces = -indent;
         output.value = opcode;
         output.nextSpaces = indent;
         break;
       case `OUT`:
+      case `IN`:
+      case `ACQ`:
         output.value = opcode + ` ` + factor1 + ` ` + factor2;
         break;
-      case `READ`:
-      case `READC`:
-        output.value = opcode + ` ` + factor2 + ` ` + result;
-        break;
+      case `CHAIN`:
       case `READE`:
-        if (Lists[factor1.toUpperCase()])
-          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
-        else
-          output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
-        break;
-      case `READP`:
-        output.value = opcode + ` ` + factor2 + ` ` + result;
-        break;
       case `READPE`:
-        if (Lists[factor1.toUpperCase()])
-          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
-        else
-          output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
-        break;
-      case `RESET`:
-        output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
-        break;
-      case `RETURN`:
-        output.value = opcode + ` ` + factor2;
+        normalize_ChaninRead(plainOp, factor1, factor2, result, ind1, ind2, arrayoutput, output);
+        doAddAfter = true;
         break;
       case `SCAN`:
-        output.value = result + ` = %Scan(` + factor1 + `:` + factor2 + `)`;
+      case `CHECK`:
+      case `CHECKR`:
+      case 'XLATE':
+        normalize_TwoItemBIF(plainOp, factor1, factor2, result, output)
         break;
       case `SELECT`:
         output.value = opcode;
@@ -469,64 +315,27 @@ module.exports = {
         EndList.push(`Endsl`);
         break;
       case `SETGT`:
-        if (Lists[factor1.toUpperCase()])
-          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
-        else
-          output.value = opcode + ` ` + factor1 + ` ` + factor2;
-        break;
       case `SETLL`:
         if (Lists[factor1.toUpperCase()])
-          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
+          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`: `) + `) ` + factor2;
         else
           output.value = opcode + ` ` + factor1 + ` ` + factor2;
         break;
       case `SETOFF`:
-        if (ind1 != ``) arrayoutput.push(`*In` + ind1 + ` = *Off;`);
-        if (ind2 != ``) arrayoutput.push(`*In` + ind2 + ` = *Off;`);
-        if (ind3 != ``) arrayoutput.push(`*In` + ind3 + ` = *Off;`);
-        break;
       case `SETON`:
-        if (ind1 != ``) arrayoutput.push(`*In` + ind1 + ` = *On;`);
-        if (ind2 != ``) arrayoutput.push(`*In` + ind2 + ` = *On;`);
-        if (ind3 != ``) arrayoutput.push(`*In` + ind3 + ` = *On;`);
+          normalize_Set_OnOff(plainOp, indent, ind1, ind2, ind3, output, arrayoutput);
         break;
       case `SORTA`:
+      case `EVALR`:
+      case `EVAL-CORR`:
         output.value = opcode + ` ` + extended;
         break;
       case 'SQRT':
         output.value = result + ` = %SQRT(` + factor2 + `)`;
         break;
-      case `SUB`: 
-        output.value = result + ` = ` + factor1 + ` - ` + factor2;
-        break;
+      case `ADDDUR`:
       case `SUBDUR`:
-        // If factor2 has a : then it is a duration and we are doing subtacting a duriation from a date
-        if (factor2.includes(`:`)) {
-          switch (factor2.split(`:`)[1]) {
-          case `*DAYS`:
-          case `*DAY`:
-          case `*D`:
-            period = `%DAYS`;
-            break;
-          case `*MONTHS`:
-          case `*MONTH`:
-          case `*M`:
-            period = `%MONTHS`;
-            break;
-          case `*YEARS`:
-          case `*YEAR`:
-          case `*Y`:
-            period = `%YEARS`;        
-            break;
-          }
-          if (factor1)
-            output.value = result + ` = ` + factor1 + ` - ` + period + `(` + factor2.split(`:`)[0] + `)`;
-          else
-            output.value = result + ` -= ` + period + `(` + factor2.split(`:`)[0] + `)`;
-        }
-        // If factor2 doesn't have a duration then we are finding the duration between two dates 
-        else       
-          output.value = result.split(`:`)[0] + ` = %DIFF(` + factor1 + `:` + factor2 + `:` + result.split(`:`)[1] + `)`;
+        normalize_SubAddDuration(plainOp, factor1, factor2, result, output);
         break;         
       case `SUBST`:
         if (factor2.indexOf(`:`) >= 0) {
@@ -538,62 +347,45 @@ module.exports = {
       case `TIME`:
         output.value = result + ` = %Time()`;
         break;
+      case `TESTB`:
+        normalize_TestB(factor2, result, ind1, ind2, ind3, output);
+        break;
+      case `RETURN`:
       case `UNLOCK`:
+      case `OPEN`:
+      case `EXSR`:
+      case `DELETE`:
+      case `CLOSE`:
+      case `EXCEPT`:
+      case `EXFMT`:
         output.value = opcode + ` ` + factor2;
         break;
-      case `UPDATE`:
-        output.value = opcode + ` ` + factor2 + ` ` + result;
-        break;
-        //TODO: Other WHEN conditions
       case `WHEN`:
         output.beforeSpaces = -indent;
         output.value = opcode + ` ` + extended;
         output.nextSpaces = indent;
         break;
       case `WHENEQ`:
-        output.beforeSpaces = -indent;
-        output.value = `When ` + factor1 + ` = ` + factor2;
-        output.nextSpaces = indent;
-        break;
       case `WHENNE`:
-        output.beforeSpaces = -indent;
-        output.value = `When ` + factor1 + ` <> ` + factor2;
-        output.nextSpaces = indent;
-        break;
       case `WHENLT`:
-        output.beforeSpaces = -indent;
-        output.value = `When ` + factor1 + ` < ` + factor2;
-        output.nextSpaces = indent;
-        break;
       case `WHENLE`:
-        output.beforeSpaces = -indent;
-        output.value = `When ` + factor1 + ` <= ` + factor2;
-        output.nextSpaces = indent;
-        break;
       case `WHENGT`:
-        output.beforeSpaces = -indent;
-        output.value = `When ` + factor1 + ` > ` + factor2;
-        output.nextSpaces = indent;
-        break;
       case `WHENGE`:
-        output.beforeSpaces = -indent;
-        output.value = `When ` + factor1 + ` >= ` + factor2;
-        output.nextSpaces = indent;
+        normalize_WhenXX(plainOp, factor1, factor2, output, indent);
         break;
+      case `READ`:
+      case `READC`:
+      case `READP`:
+      case `UPDATE`:
       case `WRITE`:
         output.value = opcode + ` ` + factor2 + ` ` + result;
         break;
       case 'XFOOT':
         output.value = result + ` = %XFOOT(` + factor2 + `)`;
         break;
-      case 'XLATE':
-        output.value = result + ` = %XLATE(` + factor1 + `:` + factor2 + `)`;
-        break;
       case `Z-ADD`:
-        output.value = result + ` = 0 + ` + factor2;
-        break;
       case `Z-SUB`: 
-        output.value = result + ` = 0 - ` + factor2;
+          normalize_Z_AddSub(plainOp, factor2, result, ind1, ind2, ind3, output, arrayoutput);
         break;
 
       default:
@@ -601,9 +393,15 @@ module.exports = {
           if (extended !== ``) {
             output.aboveKeywords = extended;
           } else {
-            //Set to blank
-            output.change = true;
-            output.value = ``;
+            if (L0 !== `` || i01 !== ``){
+              normalize_ControlInd_Cascade(output, L0, N, i01);
+              doAddAfter = true;
+            }
+            else{
+              //Set to blank
+              output.change = true;
+              output.value = ``;
+            }
           }
         } else {
           output.message = `Operation ` + plainOp + ` will not convert.`;
@@ -615,24 +413,450 @@ module.exports = {
 
     if (output.value !== ``) {
       output.change = true;
+
       if (!fixedSql)
-        output.value = output.value.trimRight() + `;`;
+        if (output.value !== undefined)
+          output.value = output.value.trimRight() + `;`;
     }
 
-    if (condition.ind !== `` && output.change) {
-      arrayoutput.push(`If` + (condition.not ? ` NOT` : ``) + ` *In` + condition.ind + `;`);
-      arrayoutput.push(`  ` + output.value);
-      arrayoutput.push(`Endif;`);
+    // add conditinal operation
+    // DO NOT DO when a Do block is encountered
+    // Do blocks are handled with  normalize_DO
+    if (i01 !== `` && plainOp !== `DO`) {
+      normalize_ControlLevel_indicators(L0, N, i01, plainOp, indent, output, arrayoutput);
+      doAddAfter = true;
     }
 
     if (arrayoutput.length > 0) {
       output.change = true;
-      if (output.value !== ``) {
-        arrayoutput.push(`  ` + output.value);
-        output.Value = ``;
+
+      if (doAddAfter == false){
+        if (output.value !== ``) {
+          arrayoutput.push(`  ` + output.value);
+          output.value = ``;
+        }
+        output.arrayoutput = arrayoutput;
+      } else {
+        if (output.value !== "")
+          output.arrayoutput = [output.value].concat(arrayoutput);
+        else
+          output.arrayoutput = arrayoutput;
+        output.value = ``;
       }
-      output.arrayoutput = arrayoutput;
     }
     return output;
+  }
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function indentify(num){
+  var ret =  ` `;
+  return ret.repeat(num);
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function getRpg3CompareOp(opKeyWord){
+  let Drpg3OP = {
+    "EQ": "=",
+    "NE": "<>",
+    "GT": ">",
+    "LT": "<",
+    "GE": ">=",
+    "LE": "<="
+  };
+
+  var len = opKeyWord.length;
+
+  if (opKeyWord.length > 2){
+    var L2 = len - 2;
+    var opStr = opKeyWord.substr(L2, 2);
+
+    if (opStr in Drpg3OP)
+      return Drpg3OP[opStr];
+  }
+
+  return "";
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function getIndicatorComparisonOp(ind1, ind2, ind3){
+  var chkStr = "";
+  var op = "";
+
+  chkStr += (ind1 != "")?"1":"0";
+  chkStr += (ind2 != "")?"1":"0";
+  chkStr += (ind3 != "")?"1":"0";
+
+  switch(chkStr){
+    case "001":
+      op = "=";
+      break;
+    case "010":
+      op = ">";
+      break;
+    case "011":
+      op = ">=";
+      break;
+    case "100":
+      op = "<";
+      break;
+    case "101":
+      op = "<=";
+      break;
+    case "110":
+      op = "<>";
+      break;
+  }
+
+  return op;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_RPG3_If(plainOp, factor1, factor2, output, indent){
+  var op = getRpg3CompareOp(plainOp);
+
+  output.value = `If ` + factor1 + ` ` + op + ` ` + factor2;
+  output.nextSpaces = indent;
+  EndList.push(`Endif`);
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_DoWU(plainOp, factor1, factor2, output, indent) {
+  var keywrd = "";
+
+  if (plainOp.substr(0,3) == `DOW`)
+    keywrd = `Dow`;
+  else
+    keywrd = `Dou`;
+
+  output.value = keywrd + ` ` + factor1 + ` ` + getRpg3CompareOp(plainOp) + ` ` + factor2;
+  output.nextSpaces = indent;
+  EndList.push(`Enddo`);
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Do(L0, N, i01, factor1, factor2, result, output, indent) {
+  var lin = "";
+  var endStr = "";
+
+  if (i01 !== ""){
+    // encountered a multiline control
+    if (L0 !== ""){
+      normalize_ControlInd_Cascade(output, L0, N, i01);
+      lin = output.aboveKeywords;
+      gblCmd = "";
+    } else {
+      lin = `If *in` + i01 + " = ";
+      lin += (N === "")? `*On`: `*Off`;
+    }
+
+    output.value = lin; 
+    
+    endStr = "Endif";
+  }else{
+    if (factor1 === ""){
+      output.value = `For ` + result + ` to ` + factor2;
+      endStr = "Endfor";
+    } else {
+      output.value = `For ` + result + ` = ` + factor1 + ` to ` + factor2;
+      endStr = "Endfor";
+    }
+  }
+
+  output.nextSpaces = indent;
+  EndList.push(endStr);
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_RPG3_BoolOp(plainOp, factor1, factor2, output) {
+  var op = getRpg3CompareOp(plainOp);
+  var keywrd = "";
+  var tmp = "";
+
+  if (plainOp.substr(0, 2) == "AN"){
+    keywrd = "And"
+  }else {
+    keywrd = "Or"
+  }
+
+  tmp = keywrd + ` ` + factor1 + ` ` + op + ` ` + factor2;
+  output.aboveKeywords = tmp;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_ControlInd_Cascade(output, L0, N, i01) {
+  var op = "";
+  var chk = "";
+  var tmp = "";
+
+  switch(L0){
+    case "AN":
+      op = "And";
+      break;
+    case "OR":
+      op = "Or";
+      break;
+    default:
+      op = "If";
+      break;
+  }
+
+  if (N === "")
+    chk = "*On";
+  else
+    chk = "*Off";
+
+  tmp += op + ` *in` + i01 + ` = ` + chk + ` `;
+  if ((gblCmd.includes(tmp)) === false)
+    gblCmd += tmp;
+
+  output.remove = true;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output){
+  return plainOp + ` ` + factor1 + ` ` + factor2 + ` ` + result;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_WhenXX(plainOp, factor1, factor2, output, indent){
+  var op = getRpg3CompareOp(plainOp);
+
+  output.beforeSpaces = -indent;
+  output.value = `When ` + factor1 + ` ` + op + ` ` + factor2;
+  output.nextSpaces = indent;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_MathOperations(plainOp, factor1, factor2, result, output){
+  var op = "";
+  let dKeyWrd = {
+    "ADD": "+",
+    "MULT": "*",
+    "DIV": "/",
+    "SUB": "-"
+  };
+
+  // get freeformat math operation
+  op = dKeyWrd[plainOp];
+
+  // on devide save the factors
+  if (op == "/"){
+    gblFac1 = factor1;
+    gblFac2 = factor2;
+  }
+
+  if (factor1 !== "")
+    output.value = result + ` = ` + factor1 + ` ` + op + ` ` + factor2;
+  else
+    output.value = result + ` ` + op +`= ` + factor2;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_SubAddDuration(plainOp, factor1, factor2, result, output){
+  var period = "";
+  var keyOp = "";
+  var facArr = factor2.split(`:`);
+
+  // convert duration to BIF
+  switch (facArr[1]) {
+    case `*DAYS`:
+    case `*DAY`:
+    case `*D`:
+      period = `%DAYS`;
+      break;
+    case `*MONTHS`:
+    case `*MONTH`:
+    case `*M`:
+      period = `%MONTHS`;
+      break;
+    case `*YEARS`:
+    case `*YEAR`:
+    case `*Y`:
+      period = `%YEARS`;        
+      break;
+    }
+  
+  // get mathmatic opertion
+  if (plainOp.substr(0,2) == "AD")
+    keyOp = "+";
+  else
+    keyOp = "-";
+
+  // apply convertion
+  if (factor1)
+    output.value = result + ` = ` + factor1 + ` ` + keyOp + ` ` + period + `(` + facArr[0] + `)`;
+  else
+    output.value = result + ` ` + keyOp + `= ` + period + `(` + facArr[0] + `)`;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Set_OnOff(plainOp, indent, ind1, ind2, ind3, output, arrayoutput) {
+  var value = (plainOp == "SETON")? "*On": "*Off";
+
+  // set array output
+  if (ind1 != ``) arrayoutput.push(`*In` + ind1 + ` = ` + value + `;`);
+  if (ind2 != ``) arrayoutput.push(`*In` + ind2 + ` = ` + value + `;`);
+  if (ind3 != ``) arrayoutput.push(`*In` + ind3 + ` = ` + value + `;`);
+
+  // clear output value
+  output.value = ``;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_TwoItemBIF(plainOp, factor1, factor2, result, output) {
+  output.value = result + ` = %` + plainOp + `(` + factor1 + `:` + factor2 + `)`;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Compare(factor1, factor2, ind1, ind2, ind3, output) {
+  var op = "";
+  var indicator = "";
+
+  indicator = (ind1 + ind2 + ind3).trim().substr(0,2);
+  op = getIndicatorComparisonOp(ind1, ind2, ind3);
+  
+  output.value = `*in` + indicator + ` = (` + factor1 + ` ` + op + ` ` + factor2 + `)`;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_CasXX(plainOp, factor1, factor2, result, indent, output, arrayoutput) {
+  var op = getRpg3CompareOp(plainOp);
+  var locInd = indentify(indent);
+
+  arrayoutput.push(`if ` + factor1 + ` ` + op + ` ` + factor2);
+  
+  // apply the body of the if statement
+  // CAB gets a comment because GOTO is not aloud 
+  if (plainOp.substr(0,3) == `CAS`) {
+    arrayoutput.push(locInd + `Exsr ` + result + `;`);
+  } else {
+    arrayoutput.push(locInd + `// goto ` + result)
+  }
+
+  arrayoutput.push(`Endif;`);
+  output.value = ``;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Cas(plainOp, factor1, factor2, result, indent, ind1, ind2, ind3, output, arrayoutput) {
+  var locInd = indentify(indent);
+  var op = getIndicatorComparisonOp(ind1, ind2, ind3);
+
+  arrayoutput.push(`if ` + factor1 + ` ` + op + ` ` + factor2);
+  
+  // apply the body of the if statement
+  // CAB gets a comment because GOTO is not aloud 
+  if (plainOp == `CAS`) {
+    arrayoutput.push(locInd + `Exsr ` + result + `;`);
+  } else {
+    arrayoutput.push(locInd + `// goto ` + result)
+  }
+
+  arrayoutput.push(`Endif;`);
+  output.value = ``;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_ControlLevel_indicators(L0, N, i01, plainOp, indent, output, arrayoutput) {
+  var tmp = "";
+  var locInd = indentify(indent);
+
+  // encountered a multiline control
+  normalize_ControlInd_Cascade(output, L0, N, i01);
+
+  if (gblCmd !== "" && plainOp !== ""){
+    tmp = gblCmd.trim() + `;`;
+    gblCmd = "";
+  } else {
+    // do nothing, line is incompleate
+    output.value = ``;
+    return;
+  }
+
+  // add op-code statement to if block
+  arrayoutput.push(tmp);
+  arrayoutput.push(locInd + output.value);
+  arrayoutput.push(`Endif`);
+  output.value = ``;
+  output.remove = false;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_ChaninRead(plainOp, factor1, factor2, result, ind1, ind2, arrayoutput, output) {
+  var line = ``;
+  var klst = factor1.toUpperCase();
+
+  if (Lists[klst]) 
+    line = plainOp + ` (` + Lists[klst].join(`: `) + `) ` + factor2 + ` ` + result;
+  else {
+    line = normalize_Sandard_Fac1ToResult(plainOp, factor1, factor2, result, output);
+  }
+  
+  line = line.trim();
+
+  if (ind1 !== "")
+    arrayoutput.push(`*in` + ind1 + ` = (%found() = *Off);`);
+  
+  if (ind2 !== "")
+    arrayoutput.push(`*in` + ind2 + ` = %error();`);
+  
+    output.value = line;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Z_AddSub(plainOp, factor2, result, ind1, ind2, ind3, output, arrayoutput) {
+  var tmp = "";
+  var op = "";
+  tmp = ind1.trim() + ind2.trim() + ind3.trim();
+
+  if (plainOp == `Z-ADD`)
+    op = ` = `;
+  else
+    op = ` = 0 - `
+
+  if (tmp === "")
+    output.value = result + op + factor2;
+  else {
+    output.value =``;
+    arrayoutput.push(result + op + factor2 + `;`);
+    if (ind1 !== "") arrayoutput.push(`*in` + ind1 + ` = (` + result + ` > 0);`);
+    if (ind2 !== "") arrayoutput.push(`*in` + ind2 + ` = (` + result + ` < 0);`);
+    if (ind3 !== "") arrayoutput.push(`*in` + ind3 + ` = (` + result + ` = 0);`);
+  }
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_TestB(factor2, result, ind1, ind2, ind3, output) {
+  var tmp = "";
+
+  tmp = `%Bitand(` + result + `: ` + factor2 + `)`;
+
+  if (ind1 !== "")
+    tmp = `*in` + ind1 + ` = (` + tmp + ` = x'00')`;
+  else {
+    if (ind3 !== "")
+      tmp = `*in` + ind3 + ` = (` + tmp + ` = ` + factor2 + `)`;
+    else
+      tmp = `*in` + ind2 + ` = (` + tmp + ` = x'00' And ` + tmp + ` <> ` + factor2 + `)`;
+  }
+  output.value = tmp;
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+function normalize_Occur_Op(factor1, factor2, result, ind2, output, arrayoutput) {
+  var tmp;
+
+  if (factor1 === "")
+    tmp = result + ` = % Occur(` + factor2 + `)`;
+  else
+    tmp = ` = % Occur(` + factor1 + `) = ` + factor2;
+
+  if (ind2 === "")
+    output.value = tmp;
+  else {
+    output.value = ``;
+    arrayoutput.push(tmp + `;`);
+    arrayoutput.push(`*in` + ind2 ` = %Error();`);
   }
 }
