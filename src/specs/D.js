@@ -101,7 +101,20 @@ module.exports = {
         type += `(` + len + `)`;
         break;
       case `I`:
-        type = `Int` + `(` + len + `)`;
+        switch (len) {
+          case '1':
+            type = `Int(3)`;
+            break;
+          case '2':
+            type = `Int(5)`;
+            break;
+          case '4':
+            type = `Int(10)`;
+            break;
+          case '8':
+            type = `Int(20)`;
+            break;
+        }
         break;
       case `N`:
         type = `Ind`;

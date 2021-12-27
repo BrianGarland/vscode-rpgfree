@@ -338,7 +338,26 @@ module.exports = class RpgleFree {
         }
       }
     }
+
+
+    
+    // catch any held info incase the last line was not a "spec"
+    if (result.arrayoutput) {
   
+      this.lines.splice(index, 1);
+
+      for (let y in result.arrayoutput) {
+        result.arrayoutput[y] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.arrayoutput[y];
+
+        this.lines.splice(index, 0, result.arrayoutput[y]);
+        index++;
+        length++;
+      }
+
+    }
+  
+
+
     function endBlock(lines,indent) {
       spaces -= indent;
       if (lastBlock !== undefined) {
