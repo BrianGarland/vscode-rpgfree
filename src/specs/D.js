@@ -42,13 +42,13 @@ module.exports = {
       keywords = keywords.substr(0, keywords.length-1);
     }
 
-    if (type == ``) {
+    if ((type == ``) && output.var.standalone) {
       if (decimals == ``)
         output.var.type = `A`; //Character
       else
         output.var.type = `S`; //Zoned
     }
-
+    
     if (pos != ``) {
       len = String(Number(len) - Number(pos) + 1);
       keywords = `Pos(` + pos + `) ` + keywords;
@@ -114,6 +114,8 @@ module.exports = {
           case '8':
             type = `Int(20)`;
             break;
+          default:
+            type = `Int(` + len + `)`;
         }
         break;
       case `N`:
@@ -138,7 +140,9 @@ module.exports = {
         type = `Pointer`;
         break;
       case ``:
-        if (len != ``) {
+        if (!output.var.standalone && output.var.len != 0) {
+          type = `Len(` + len + `)`;
+        } else if (len != ``) {
           if (decimals == ``) {
             if (keywords.toUpperCase().indexOf(`VARYING`) >= 0) {
               keywords = keywords.replace(/varying/ig, ``);
