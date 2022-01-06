@@ -80,7 +80,18 @@ module.exports = {
         type += `(` + len + `)`;
         break;
       case `B`:
-        type = `Bindec` + `(` + len + `)`;
+        if (pos != ``) {
+          // When using positions binary decimal is only 2 or 4 
+          // This equates to 4 or 9 in free
+          if (Number(len) == 4) {
+            type = `Bindec(9)`;
+          } else {
+            type = `Bindec(4)`;
+          }    
+        } else {
+          // Not using positions, then the length is correct
+          type = `Bindec` + `(` + len + `)`;
+        }
         break;
       case `C`:
         type = `Ucs2` + `(` + len + `)`;
@@ -122,7 +133,13 @@ module.exports = {
         type = `Ind`;
         break;
       case `P`:
-        type = `Packed` + `(` + String(Number(len)*2+1)  + `:` + decimals + `)`;
+        if (pos != ``) {
+          // When using positions packed length is one less than double the bytes
+          type = `Packed` + `(` + String(Number(len)*2-1)  + `:` + decimals + `)`;
+        } else {
+          // Not using positions, then the length is correct
+          type = `Packed` + `(` + len + `:` + decimals + `)`;
+        }  
         break;
       case `S`:
         type = `Zoned` + `(` + len + `:` + decimals + `)`;
