@@ -122,7 +122,7 @@ module.exports = {
         type = `Ind`;
         break;
       case `P`:
-        type = `Packed` + `(` + len + `:` + decimals + `)`;
+        type = `Packed` + `(` + String(Number(len)*2+1)  + `:` + decimals + `)`;
         break;
       case `S`:
         type = `Zoned` + `(` + len + `:` + decimals + `)`;
@@ -140,7 +140,7 @@ module.exports = {
         type = `Pointer`;
         break;
       case ``:
-        if (!output.var.standalone && output.var.len != 0) {
+        if (field == `DS` && output.var.len != 0) {
           type = `Len(` + len + `)`;
         } else if (len != ``) {
           if (decimals == ``) {
