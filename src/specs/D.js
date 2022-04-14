@@ -1,3 +1,6 @@
+const { Console } = require("console");
+const { CommentThreadCollapsibleState } = require("vscode");
+
 let isSubf = false;
 let prevName = ``;
 let blockType = ``;
@@ -154,7 +157,14 @@ module.exports = {
         type = `Timestamp`;
         break;
       case `*`:
-        type = `Pointer`;
+        let index = keywords.toUpperCase().indexOf(`PROCPTR`);
+        if ( index >= 0) {
+          let removeText = keywords.substr(index,7);
+          keywords = keywords.replace(removeText,``);
+          type = `Pointer(*PROC)`;
+        } else {  
+          type = `Pointer`;
+        }
         break;
       case ``:
         if (field == `DS` && output.var.len != 0) {
