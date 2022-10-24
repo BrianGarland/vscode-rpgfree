@@ -304,7 +304,10 @@ module.exports = class RpgleFree {
   
         case result.change:
           spaces += result.beforeSpaces;
-  
+          // no break, need default logic too
+          
+        default:
+
           if (result.arrayoutput) {
   
             this.lines.splice(index, 1);
@@ -313,6 +316,8 @@ module.exports = class RpgleFree {
               result.arrayoutput[y] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.arrayoutput[y];
   
               this.lines.splice(index, 0, result.arrayoutput[y]);
+              result.arrayoutput.pop();
+              
               index++;
               length++;
             }
@@ -330,6 +335,7 @@ module.exports = class RpgleFree {
               
           spaces += result.nextSpaces;
           break;
+
         }
   
       } else {
