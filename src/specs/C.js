@@ -382,7 +382,14 @@ module.exports = {
         output.value = opcode;
         break;
       case `LOOKUP`:
-        output.value = `*In` + ind3 + ` = (%Lookup(` + factor1 + `:` + factor2 + `) > 0)`;
+        // if factor2 has a paren then need to split that value out
+        if (factor2.indexOf(`(`) >= 0) {
+          let array = factor2.substr(0, factor2.indexOf(`(`));
+          let index = factor2.substring(factor2.indexOf(`(`)+1, factor2.indexOf(`)`));
+          output.value = `*In` + ind3 + ` = (%Lookup(` + factor1 + `:` + array + `:` + index + `) > 0)`;
+        } else {
+          output.value = `*In` + ind3 + ` = (%Lookup(` + factor1 + `:` + factor2 + `) > 0)`;
+        }    
         break;
       case `MONITOR`:
         output.value = opcode;
