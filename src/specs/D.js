@@ -70,7 +70,12 @@ module.exports = {
       }
     }
 
-	
+
+    if ((field == `C`) || (field == `S`)) {
+        isSubf = false;
+    }
+
+
     if (output.remove === false) {
       switch (type.toUpperCase()) {
       case `A`:
