@@ -543,6 +543,7 @@ module.exports = {
           sep = factor2.split(`:`)[1];
           factor2 = factor2.split(`:`)[0].trim();
         }
+        
         output.value = result + ` = %Subst(` + factor2 + `:` + sep + `:` + factor1 + `)`;
         break;
       case `TIME`:

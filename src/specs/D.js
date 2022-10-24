@@ -166,7 +166,20 @@ module.exports = {
         type = `Zoned` + `(` + len + `:` + decimals + `)`;
         break;
       case `T`:
-        type = `Time`;
+        if (keywords.toUpperCase().indexOf(`TIMFMT`) >= 0) {
+          // If a date format was provided we need to remove TIMFMT(xxxx) from keywords
+          // and add what ever (xxxx) was to type
+          let start = keywords.toUpperCase().indexOf(`TIMFMT`);
+          let stop =  keywords.toUpperCase().indexOf(`)`);
+          type = `Time` + keywords.substr(start+6,stop-(start+6)+1);
+          if (start == 0) {
+            keywords = keywords.substr(stop+1).trim();
+          } else {
+            keywords = keywords.substr(0,start-1).trim() + ` ` +keywords.substr(stop+1).trim();
+          }
+        } else {
+          type = `Time`;
+        }
         break;
       case `U`:
         switch (len) {
