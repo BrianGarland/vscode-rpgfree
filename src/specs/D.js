@@ -151,7 +151,22 @@ module.exports = {
         type = `Time`;
         break;
       case `U`:
-        type = `Uns` + `(` + len + `)`;
+        switch (len) {
+          case '1':
+            type = `Uns(3)`;
+            break;
+          case '2':
+            type = `uns(5)`;
+            break;
+          case '4':
+            type = `Uns(10)`;
+            break;
+          case '8':
+            type = `Uns(20)`;
+            break;
+          default:
+            type = `Uns(` + len + `)`;
+        }
         break;
       case `Z`:
         type = `Timestamp`;
