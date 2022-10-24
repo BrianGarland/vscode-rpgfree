@@ -20,8 +20,8 @@ This is based on [rpgfreeweb](https://github.com/worksofliam/rpgfreeweb).
 Highlight all or part of your source code and then right-click and use the "Convert to Free Format" option from the menu.
 
 A couple of caveats:
-1. Your hightlight should start in position 1 of the line or that line will not convert.
-2. Your hightlight should end after the end of line for the last line to be converted.
+1. Your highlight should start in position 1 of the line or that line will not convert.
+2. Your highlight should end after the end of line for the last line to be converted.
 
 ## Contributors
 
