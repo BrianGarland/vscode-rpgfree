@@ -497,7 +497,10 @@ module.exports = {
         output.value = result + ` = %SQRT(` + factor2 + `)`;
         break;
       case `SUB`: 
-        output.value = result + ` = ` + factor1 + ` - ` + factor2;
+        if (factor1)
+          output.value = result + ` = ` + factor1 + ` - ` + factor2;
+        else
+          output.value = result + ` = ` + result + ` - ` + factor2;
         break;
       case `SUBDUR`:
         // If factor2 has a : then it is a duration and we are doing subtacting a duriation from a date
