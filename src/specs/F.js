@@ -11,6 +11,8 @@ module.exports = {
 
     let name = input.substr(7, 10).trim(); //File name
     let type = input.substr(17, 1).toUpperCase(); // I, U, O, C
+    let external = input.substr(22, 1).toUpperCase(); // F, E
+    let recordLength = input.substr(23, 5).toUpperCase();
     let field = input.substr(34, 1).toUpperCase(); //KEYED
     let device = input.substr(36, 7).toUpperCase().trim(); //device: DISK, WORKSTN
     let keywords = input.substr(44).trim();
@@ -40,6 +42,10 @@ module.exports = {
     default:
       type = ``;
       break;
+    }
+
+    if (external != `E`) {
+      device = device + `(` + recordLength.trim() + `)`;
     }
 
     if (device != `DISK`)
