@@ -105,7 +105,20 @@ module.exports = {
         type = `Ucs2` + `(` + len + `)`;
         break;  
       case `D`:
-        type = `Date`;
+        if (keywords.toUpperCase().indexOf(`DATFMT`) >= 0) {
+          // If a date format was provided we need to remove DATFMT(xxxx) from keywords
+          // and add what ever (xxxx) was to type
+          let start = keywords.toUpperCase().indexOf(`DATFMT`);
+          let stop =  keywords.toUpperCase().indexOf(`)`);
+          type = `Date` + keywords.substr(start+6,stop-(start+6)+1);
+          if (start == 0) {
+            keywords = keywords.substr(stop+1).trim();
+          } else {
+            keywords = keywords.substr(0,start-1).trim() + ` ` +keywords.substr(stop+1).trim();
+          }
+        } else {
+          type = `Date`;
+        }
         break;
       case `F`:
         type = `Float` + `(` + len + `)`;
