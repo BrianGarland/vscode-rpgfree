@@ -1,3 +1,5 @@
+const { Breakpoint } = require("vscode");
+
 const specs = {
   'C': require(`./specs/C`),
   'F': require(`./specs/F`),
@@ -189,16 +191,16 @@ module.exports = class RpgleFree {
       comment = ``;
       line = ` ` + this.lines[index].padEnd(80);
       if (line.length > 81) {
-        line = line.substr(0, 81);
-        comment = this.lines[index].substr(80);
+        line = line.substring(0, 81);
+        comment = this.lines[index].substring(80);
       }
 
-      ignoredColumns = line.substr(1, 4);
+      ignoredColumns = line.substring(1, 4);
       
       if (this.lines[index+1]) {
         nextline = ` ` + this.lines[index+1].padEnd(80);
         if (nextline.length > 81) 
-          nextline = nextline.substr(0, 81);
+          nextline = nextline.substring(0, 81);
       } else
         nextline = ``;
   
@@ -206,7 +208,7 @@ module.exports = class RpgleFree {
 
       switch (line[7]) {
       case `/`:
-        let test = line.substr(8,8).trim().toUpperCase();
+        let test = line.substring(8,8).trim().toUpperCase();
         switch (test) {
         case `EXEC SQL`:
           // deal with embedded SQL just like normal c-specs
@@ -226,7 +228,7 @@ module.exports = class RpgleFree {
           break;
         default:
           spec = ``;
-          this.lines[index] = ``.padEnd(7) + ``.padEnd(spaces) + line.substr(7).trim();
+          this.lines[index] = ``.padEnd(7) + ``.padEnd(spaces) + line.substring(7).trim();
           break;
         }
         break;
@@ -234,7 +236,7 @@ module.exports = class RpgleFree {
       case `*`:
         spec = ``;
   
-        comment = line.substr(8).trim();
+        comment = line.substring(8).trimEnd();
         if (comment !== ``)
           this.lines[index] = ``.padEnd(8) + ``.padEnd(spaces) + `//` + comment;
         else
@@ -276,6 +278,9 @@ module.exports = class RpgleFree {
         }
   
         switch (true) {
+        case result.ignore:
+          break;
+  
         case isMove:
           result = this.suggestMove(result.move);
           if (result.change) {
@@ -285,9 +290,9 @@ module.exports = class RpgleFree {
   
         case hasKeywords:
           let endStmti = this.lines[index - 1].indexOf(`;`);
-          let endStmt = this.lines[index - 1].substr(endStmti); //Keep those end line comments :D
+          let endStmt = this.lines[index - 1].substring(endStmti); //Keep those end line comments :D
   
-          this.lines[index - 1] = this.lines[index - 1].substr(0, endStmti) + ` ` + result.aboveKeywords + endStmt;
+          this.lines[index - 1] = this.lines[index - 1].substring(0, endStmti) + ` ` + result.aboveKeywords + endStmt;
           this.lines.splice(index, 1);
           index--;
           break;
@@ -316,12 +321,15 @@ module.exports = class RpgleFree {
               result.arrayoutput[y] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.arrayoutput[y];
   
               this.lines.splice(index, 0, result.arrayoutput[y]);
-              result.arrayoutput.pop();
+              //result.arrayoutput.pop();
               
               index++;
               length++;
             }
-  
+            while (result.arrayoutput.length > 0) { 
+              result.arrayoutput.pop(); 
+            }
+            
             index--;
   
           } else {

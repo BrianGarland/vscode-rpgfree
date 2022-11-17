@@ -38,6 +38,8 @@ module.exports = {
       ind: input.substr(10, 2).trim()
     };
 
+    let levelBreak = (input.substr(7,1).toUpperCase() === `L`);
+
     let arrayoutput = [];
 
     plainOp = opcode;
@@ -71,6 +73,10 @@ module.exports = {
     } else if (sqltest2 == '+') {
       output.value = ``.padEnd(7) + input.substr(8).trim();
       fixedSql = true;
+
+    } else if (levelBreak) {
+      // Leave this statement alone
+      output.ignore = true;
 
     } else {
       switch (plainOp) {
@@ -397,13 +403,14 @@ module.exports = {
         break;
       case `MOVE`:
       case `MOVEL`:
-        output.move = {
-          target: result,
-          source: factor2,
-          attr: factor1,
-          dir: plainOp,
-          padded: (extender === `P`)
-        }
+        //output.move = {
+        //  target: result,
+        //  source: factor2,
+        //  attr: factor1,
+        //  dir: plainOp,
+        //  padded: (extender === `P`)
+        //}
+        output.ignore = true;
         break;
       case `MULT`:
         output.value = result + ` = ` + factor1 + ` * ` + factor2;
@@ -543,8 +550,10 @@ module.exports = {
           sep = factor2.split(`:`)[1];
           factor2 = factor2.split(`:`)[0].trim();
         }
-        
-        output.value = result + ` = %Subst(` + factor2 + `:` + sep + `:` + factor1 + `)`;
+        if (factor1.trim().length == 0) 
+          output.value = result + ` = %Subst(` + factor2 + `:` + sep + `)`;
+        else  
+          output.value = result + ` = %Subst(` + factor2 + `:` + sep + `:` + factor1 + `)`;
         break;
       case `TIME`:
         output.value = result + ` = %Time()`;
@@ -555,7 +564,6 @@ module.exports = {
       case `UPDATE`:
         output.value = opcode + ` ` + factor2 + ` ` + result;
         break;
-        //TODO: Other WHEN conditions
       case `WHEN`:
         output.beforeSpaces = -indent;
         output.value = opcode + ` ` + extended;
@@ -601,10 +609,10 @@ module.exports = {
         output.value = result + ` = %XLATE(` + factor1 + `:` + factor2 + `)`;
         break;
       case `Z-ADD`:
-        output.value = result + ` = 0 + ` + factor2;
+        output.value = result + ` = ` + factor2;
         break;
       case `Z-SUB`: 
-        output.value = result + ` = 0 - ` + factor2;
+        output.value = result + ` = -` + factor2;
         break;
 
       default:
@@ -618,6 +626,7 @@ module.exports = {
           }
         } else {
           output.message = `Operation ` + plainOp + ` will not convert.`;
+          output.ignore = true;
         }
         break;
       }
@@ -627,13 +636,14 @@ module.exports = {
     if (output.value !== ``) {
       output.change = true;
       if (!fixedSql)
-        output.value = output.value.trimRight() + `;`;
+        output.value = output.value.trimEnd() + `;`;
     }
 
     if (condition.ind !== `` && output.change) {
       arrayoutput.push(`If` + (condition.not ? ` NOT` : ``) + ` *In` + condition.ind + `;`);
       arrayoutput.push(`  ` + output.value);
       arrayoutput.push(`Endif;`);
+      output.value = ``;
     }
 
     if (arrayoutput.length > 0) {
