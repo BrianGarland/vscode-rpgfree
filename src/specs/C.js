@@ -181,6 +181,12 @@ module.exports = {
           output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
         else
           output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
+        
+          // apply indicators
+        if (ind1 != ``)
+            output.value += `;\n       *in` + ind1 +' = (%found() = *Off)'
+        if (ind2 != ``)
+            output.value += `;\n       *in` + ind1 +' = %error()'
         break;
       case `CHECK`:
         output.value = result + ` = %Check(` + factor1 + `:` + factor2 + `)`;
@@ -201,9 +207,19 @@ module.exports = {
         output.value = result + ` = ` + factor1 + ` / ` + factor2;
         break;
       case `DO`:
-        output.value = `For ` + result + ` = ` + factor1 + ` to ` + factor2;
-        output.nextSpaces = indent;
-        EndList.push(`Enddo`);
+        if (condition.ind != ``)
+        {
+          output.value = `If *in` + condition.ind.toUpperCase() + ` = ` + ((condition.not == true)?'*Off': '*On');
+          output.nextSpaces = indent;
+          EndList.push(`Endif`);
+          condition.ind = ``;
+        }
+        else
+        {
+          output.value = `For ` + result + ` = ` + factor1 + ` to ` + factor2;
+          output.nextSpaces = indent;
+          EndList.push(`Enddo`);
+        }
         break;
       case `DOU`:
       case `DOW`:
@@ -452,6 +468,12 @@ module.exports = {
       case `READ`:
       case `READC`:
         output.value = opcode + ` ` + factor2 + ` ` + result;
+        
+        // process indicators
+        if (ind2 != "")
+          output.value += `;\n       *in` + ind2 + ' = %error()';
+        if (ind3 != "")
+          output.value += `;\n       *in` + ind3 + ' = %eof()';
         break;
       case `READE`:
         if (Lists[factor1.toUpperCase()])
@@ -487,12 +509,26 @@ module.exports = {
           output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
         else
           output.value = opcode + ` ` + factor1 + ` ` + factor2;
+          
+          // apply indicators
+          if (ind1 != ``)
+            output.value += `;\n       *in` + ind1 +' = (%found() = *Off)'
+          if (ind2 != ``)
+            output.value += `;\n       *in` + ind1 +' = %error()'
         break;
       case `SETLL`:
         if (Lists[factor1.toUpperCase()])
           output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
         else
           output.value = opcode + ` ` + factor1 + ` ` + factor2;
+          
+        // apply indicators
+        if (ind1 != ``)
+          output.value += `;\n       *in` + ind1 +' = (%found() = *Off)'
+        if (ind2 != ``)
+          output.value += `;\n       *in` + ind1 +' = %error()'
+        if (ind3 != ``)
+          output.value += `;\n       *in` + ind1 +' = %equal()'
         break;
       case `SETOFF`:
         if (ind1 != ``) arrayoutput.push(`*In` + ind1 + ` = *Off;`);
