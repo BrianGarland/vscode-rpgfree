@@ -11,6 +11,7 @@ module.exports = {
 
     let name = input.substr(7, 10).trim(); //File name
     let type = input.substr(17, 1).toUpperCase(); // I, U, O, C
+    let fileadd = input.substr(20, 1).toUpperCase(); // A
     let external = input.substr(22, 1).toUpperCase(); // F, E
     let recordLength = input.substr(23, 5).toUpperCase();
     let field = input.substr(34, 1).toUpperCase(); //KEYED
@@ -21,7 +22,10 @@ module.exports = {
 
     switch (type) {
     case `I`:
-      type = `*Input`;
+      if (fileadd == 'A')
+        type = `*Input:*Output`;
+      else
+        type = `*Input`;
       break;
     case `U`:
       type = `*Update:*Delete:*Output`;
