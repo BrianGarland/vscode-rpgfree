@@ -195,7 +195,12 @@ module.exports = {
         output.value = opcode + ` ` + factor2;
         break;
       case `DELETE`:
-        output.value = opcode + ` ` + factor2;
+        if (Lists[factor1.toUpperCase()])
+          output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
+        else if (factor1 != ``)
+          output.value = opcode + ` ` + factor1 + ` ` + factor2;
+        else 
+          output.value = opcode + ` ` + factor2;
         break;
       case `DIV`:
         output.value = result + ` = ` + factor1 + ` / ` + factor2;
