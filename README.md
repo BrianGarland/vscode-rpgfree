@@ -27,3 +27,5 @@ A couple of caveats:
 
 * [@worksofliam](https://github.com/worksofliam)
 * [@BrianGarland](https://github.com/BrianGarland)
+* [@DavidShears](https://github.com/DavidShears)
+* [@RoySpino](https://github.com/RoySpino)
