@@ -12,10 +12,22 @@ const RpgleFreeX = require(`./RpgleFree`);
  */
 function RpgleFree() {
 
-  // Get the selected text from the editor and break into an array 
   const editor = vscode.window.activeTextEditor;
   const eol = editor.document.eol === 1 ? '\n' : '\r\n';
+
+  // Get the selected text from the editor 
+  let curRange = new vscode.Range(editor.selection.start, editor.selection.end);
   let text = editor.document.getText(editor.selection);
+
+  // If no text select, then use the full document
+  if (text == '') {
+    const fullText = editor.document.getText();
+    curRange = new vscode.Range(editor.document.positionAt(0), editor.document.positionAt(fullText.length - 1));
+    // If converting everything we should add **FREE to the start
+    text = '**FREE' + eol + editor.document.getText();
+  };
+
+  // Break into an array 
   let lines = text.split(eol);
 
   // Start with the indent value being a constant
@@ -26,11 +38,11 @@ function RpgleFree() {
   let conv = new RpgleFreeX(lines, indent);
   conv.parse();
 
-  let curRange = new vscode.Range(editor.selection.start, editor.selection.end);
+  // Replace the text
   editor.edit(editBuilder => {
     editBuilder.replace(curRange,lines.join(eol));
-  });
-  
+  })
+
   vscode.window.showInformationMessage(`Selected text converted to free format`);
 
 }
