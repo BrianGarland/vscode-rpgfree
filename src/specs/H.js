@@ -10,9 +10,15 @@ module.exports = {
     };
   
     let keywords = input.substr(7);
-    output.value = `Ctl-Opt ` + keywords.trim();
-  
-    if (output.value !== ``) {
+    if (keywords.trim().slice(-1) == `+` || keywords.trim().slice(-1) == `-` ) {
+      output.isSub = true;
+    }
+    if (!wasSub) {
+      output.value = `Ctl-Opt ` + keywords.trim();
+    } else {
+      output.value = keywords.trim()
+    }
+    if (output.value !== `` && !output.isSub) {
       output.change = true;
       output.value = output.value.trimRight() + `;`;
     }
