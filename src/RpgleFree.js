@@ -190,7 +190,7 @@ module.exports = class RpgleFree {
   
       comment = ``;
       line = ` ` + this.lines[index].padEnd(80);
-      if (line.length > 81) {
+      if (line.length > 81 && line[7] !== `*` && line.slice(7,9) !== `//`) {
         line = line.substring(0, 81);
         comment = this.lines[index].substring(80);
       }
@@ -347,7 +347,7 @@ module.exports = class RpgleFree {
         }
   
       } else {
-        if (wasSub) {
+        if (wasSub && line[7] !== `*`) {
           endBlock(this.lines,this.indent);
         }
       }
