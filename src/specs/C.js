@@ -423,7 +423,15 @@ module.exports = {
         output.nextSpaces = indent;
         break;
       case `MOVE`:
+        if (factor2 == `*ON` || factor2 == `*OFF`) {
+          output.value = result + ` = ` + factor2;
+          break;
+        }
       case `MOVEL`:
+        if (factor2 == `*ON` || factor2 == `*OFF`) {
+          output.value = result + ` = ` + factor2;
+          break;
+        }
         //output.move = {
         //  target: result,
         //  source: factor2,
