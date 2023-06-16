@@ -6,7 +6,7 @@ let prevName = ``;
 let blockType = ``;
 
 module.exports = {
-  Parse: function (input, indent, wasSub) {
+  Parse: function (input, indent, wasSub, wasLIKEDS) {
     let output = {
       remove: false,
       change: false,
@@ -258,7 +258,7 @@ module.exports = {
           name = `*N`;
 
         isSubf = (field == `DS`);
-        output.isSub = true;
+        output.isSub = (DSisLIKEDS == false);
         output.isHead = true;
 
         // if keywords contain 'EXTNAME' add apostrophes around name
@@ -293,7 +293,7 @@ module.exports = {
 
         break;
       case ``:
-        output.isSub = true;
+        output.isSub = (wasLIKEDS == false);
         if (name == ``) name = `*N`;
         if (name == `*N` && type == ``) {
           output.aboveKeywords = keywords;

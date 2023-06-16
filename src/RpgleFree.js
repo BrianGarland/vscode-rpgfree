@@ -186,7 +186,7 @@ module.exports = class RpgleFree {
     for (index = 0; index < length; index++) {
       if (this.lines[index] === undefined) continue;
         
-      this.currentLine = index;
+      this.currentLine = index; 
   
       comment = ``;
       line = ` ` + this.lines[index].padEnd(80);
@@ -208,7 +208,7 @@ module.exports = class RpgleFree {
 
       switch (line[7]) {
       case `/`:
-        let test = line.substring(8,8).trim().toUpperCase();
+        let test = line.substring(8,16).trim().toUpperCase();
         switch (test) {
         case `EXEC SQL`:
           // deal with embedded SQL just like normal c-specs
@@ -252,7 +252,7 @@ module.exports = class RpgleFree {
       }
   
       if (specs[spec] !== undefined) {
-        result = specs[spec].Parse(line, this.indent, wasSub);
+        result = specs[spec].Parse(line, this.indent, wasSub, wasLIKEDS);
   
         if (result.isSub === true) {
           if (result.isHead === true && wasSub && !wasLIKEDS) {
@@ -374,7 +374,7 @@ module.exports = class RpgleFree {
 
     function endBlock(lines,indent) {
       spaces -= indent;
-      if (lastBlock !== undefined) {
+      if (lastBlock !== undefined && lastBlock !== ``) {
         lines.splice(index, 0, ``.padEnd(8) + ``.padEnd(spaces) + `End-` + lastBlock + `;`);
         index++;
         length++;
