@@ -347,7 +347,7 @@ module.exports = class RpgleFree {
         }
   
       } else {
-        if (wasSub) {
+        if (wasSub && line[7] !== `*`) {
           endBlock(this.lines,this.indent);
         }
       }
