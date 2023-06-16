@@ -680,7 +680,7 @@ module.exports = {
         output.value = output.value.trimEnd() + `;`;
     }
 
-    if (condition.ind !== `` && output.change) {
+    if (!fixedSql && condition.ind !== `` && output.change) {
       arrayoutput.push(`If` + (condition.not ? ` NOT` : ``) + ` *In` + condition.ind + `;`);
       arrayoutput.push(`  ` + output.value);
       arrayoutput.push(`Endif;`);

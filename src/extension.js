@@ -42,9 +42,11 @@ function RpgleFree() {
   editor.edit(editBuilder => {
     editBuilder.replace(curRange,lines.join(eol));
   })
-
+  
   vscode.window.showInformationMessage(`Selected text converted to free format`);
 
+  vscode.commands.executeCommand('editor.action.formatDocument');
+  
 }
 
 export function activate(context) {
