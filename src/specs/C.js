@@ -52,7 +52,7 @@ module.exports = {
       doingCALL = false;
       arrayoutput.push(LastKey + `(` + Lists[LastKey].join(`:`) + `);`);
     }
-    if (doingENTRY && plainOp != `PARM`) 
+    if (doingENTRY && plainOp != `PARM`)
       doingENTRY = false;
 
 
@@ -60,7 +60,7 @@ module.exports = {
     let sqltest1 = input.substr(7,9).trim().toUpperCase();
     let sqltest2 = input.substr(7,1).trim().toUpperCase();
     let fixedSql = false;
-  
+
     if (sqltest1 == '/EXEC SQL') {
       output.value = ``.padEnd(7) + input.substr(8).trim();
       fixedSql = true;
@@ -69,7 +69,7 @@ module.exports = {
     } else if (sqltest1 == '/END-EXEC') {
       output.value = ``.padEnd(7);
       condition.ind = ``;
-  
+
     } else if (sqltest2 == '+') {
       output.value = ``.padEnd(7) + input.substr(8).trim();
       fixedSql = true;
@@ -84,11 +84,11 @@ module.exports = {
       case `KLIST`:
         LastKey = factor1.toUpperCase();
         Lists[LastKey] = [];
-        if (plainOp == `PLIST` && factor1.toUpperCase() == `*ENTRY`) 
-          doingENTRY = true; 
-        else 
-          output.remove = true; 
-        break; 
+        if (plainOp == `PLIST` && factor1.toUpperCase() == `*ENTRY`)
+          doingENTRY = true;
+        else
+          output.remove = true;
+        break;
       case `PARM`:
       case `KFLD`:
         //Handle var declaration
@@ -122,7 +122,7 @@ module.exports = {
         case `*YEARS`:
         case `*YEAR`:
         case `*Y`:
-          period = `%YEARS`;        
+          period = `%YEARS`;
           break;
         }
         if (factor1)
@@ -147,7 +147,7 @@ module.exports = {
         break;
       case `ANDGT`:
         output.aboveKeywords = `AND ` + factor1 + ` > ` + factor2;
-        break;    
+        break;
       case `BEGSR`:
         output.value = opcode + ` ` + factor1;
         output.nextSpaces = indent;
@@ -163,7 +163,7 @@ module.exports = {
           LastKey = factor2.toUpperCase();
           Lists[LastKey] = [];
           doingCALL = true;
-        }  
+        }
         break;
       case `CALLB`:
       case `CALLP`:
@@ -181,7 +181,7 @@ module.exports = {
           output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
         else
           output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
-        
+
           // apply indicators
         if (ind1 != ``)
             output.value += `;\n       *in` + ind1 +' = (%found() = *Off)'
@@ -214,7 +214,7 @@ module.exports = {
           output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
         else if (factor1 != ``)
           output.value = opcode + ` ` + factor1 + ` ` + factor2;
-        else 
+        else
           output.value = opcode + ` ` + factor2;
         break;
       case `DIV`:
@@ -425,7 +425,7 @@ module.exports = {
           output.value = `*In` + ind3 + ` = (%Lookup(` + factor1 + `:` + array + `:` + index + `) > 0)`;
         } else {
           output.value = `*In` + ind3 + ` = (%Lookup(` + factor1 + `:` + factor2 + `) > 0)`;
-        }    
+        }
         break;
       case `MONITOR`:
         output.value = opcode;
@@ -470,7 +470,7 @@ module.exports = {
         break;
       case `ORGT`:
         output.aboveKeywords = `OR ` + factor1 + ` > ` + factor2;
-        break;    
+        break;
       case `OTHER`:
         output.beforeSpaces = -indent;
         output.value = opcode;
@@ -482,7 +482,7 @@ module.exports = {
       case `READ`:
       case `READC`:
         output.value = opcode + ` ` + factor2 + ` ` + result;
-        
+
         // process indicators
         if (ind2 != "")
           output.value += `;\n       *in` + ind2 + ' = %error()';
@@ -523,7 +523,7 @@ module.exports = {
           output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
         else
           output.value = opcode + ` ` + factor1 + ` ` + factor2;
-          
+
           // apply indicators
           if (ind1 != ``)
             output.value += `;\n       *in` + ind1 +' = (%found() = *Off)'
@@ -535,7 +535,7 @@ module.exports = {
           output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
         else
           output.value = opcode + ` ` + factor1 + ` ` + factor2;
-          
+
         // apply indicators
         if (ind1 != ``)
           output.value += `;\n       *in` + ind1 +' = (%found() = *Off)'
@@ -560,7 +560,7 @@ module.exports = {
       case 'SQRT':
         output.value = result + ` = %SQRT(` + factor2 + `)`;
         break;
-      case `SUB`: 
+      case `SUB`:
         if (factor1)
           output.value = result + ` = ` + factor1 + ` - ` + factor2;
         else
@@ -583,7 +583,7 @@ module.exports = {
           case `*YEARS`:
           case `*YEAR`:
           case `*Y`:
-            period = `%YEARS`;        
+            period = `%YEARS`;
             break;
           }
           if (factor1)
@@ -591,18 +591,18 @@ module.exports = {
           else
             output.value = result + ` -= ` + period + `(` + factor2.split(`:`)[0] + `)`;
         }
-        // If factor2 doesn't have a duration then we are finding the duration between two dates 
-        else       
+        // If factor2 doesn't have a duration then we are finding the duration between two dates
+        else
           output.value = result.split(`:`)[0] + ` = %DIFF(` + factor1 + `:` + factor2 + `:` + result.split(`:`)[1] + `)`;
-        break;         
+        break;
       case `SUBST`:
         if (factor2.indexOf(`:`) >= 0) {
           sep = factor2.split(`:`)[1];
           factor2 = factor2.split(`:`)[0].trim();
         }
-        if (factor1.trim().length == 0) 
+        if (factor1.trim().length == 0)
           output.value = result + ` = %Subst(` + factor2 + `:` + sep + `)`;
-        else  
+        else
           output.value = result + ` = %Subst(` + factor2 + `:` + sep + `:` + factor1 + `)`;
         break;
       case `TIME`:
@@ -661,7 +661,7 @@ module.exports = {
       case `Z-ADD`:
         output.value = result + ` = ` + factor2;
         break;
-      case `Z-SUB`: 
+      case `Z-SUB`:
         output.value = result + ` = -` + factor2;
         break;
 
@@ -680,8 +680,8 @@ module.exports = {
         }
         break;
       }
-    } 
-     
+    }
+
 
     if (output.value !== ``) {
       output.change = true;

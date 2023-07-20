@@ -51,7 +51,7 @@ module.exports = {
       else
         output.var.type = `S`; //Zoned
     }
-    
+
     if (pos != ``) {
       len = String(Number(len) - Number(pos) + 1);
       keywords = `Pos(` + pos + `) ` + keywords;
@@ -89,13 +89,13 @@ module.exports = {
         break;
       case `B`:
         if (pos != ``) {
-          // When using positions binary decimal is only 2 or 4 
+          // When using positions binary decimal is only 2 or 4
           // This equates to 4 or 9 in free
           if (Number(len) == 4) {
             type = `Bindec(9)`;
           } else {
             type = `Bindec(4)`;
-          }    
+          }
         } else {
           // Not using positions, then the length is correct
           type = `Bindec` + `(` + len + `)`;
@@ -103,7 +103,7 @@ module.exports = {
         break;
       case `C`:
         type = `Ucs2` + `(` + len + `)`;
-        break;  
+        break;
       case `D`:
         if (keywords.toUpperCase().indexOf(`DATFMT`) >= 0) {
           // If a date format was provided we need to remove DATFMT(xxxx) from keywords
@@ -160,7 +160,7 @@ module.exports = {
         } else {
           // Not using positions, then the length is correct
           type = `Packed` + `(` + len + `:` + decimals + `)`;
-        }  
+        }
         break;
       case `S`:
         type = `Zoned` + `(` + len + `:` + decimals + `)`;
@@ -208,7 +208,7 @@ module.exports = {
           let removeText = keywords.substr(index,7);
           keywords = keywords.replace(removeText,``);
           type = `Pointer(*PROC)`;
-        } else {  
+        } else {
           type = `Pointer`;
         }
         break;
@@ -254,7 +254,7 @@ module.exports = {
         let DSisLIKEDS = (keywords.toUpperCase().indexOf(`LIKEDS`) >= 0);
         output.isLIKEDS = DSisLIKEDS;
 
-        if (name == ``) 
+        if (name == ``)
           name = `*N`;
 
         isSubf = (field == `DS`);
@@ -269,7 +269,7 @@ module.exports = {
           output.isSub = true;
           for (var i = 0; i < tempkeywords.length; i++) {
             if (i > extname && !doneCheck)
-              doCheck = true; 
+              doCheck = true;
             if (doCheck && tempkeywords.substr(i,1) == `)`) {
               keywords += `'`;
               doCheck = false;
@@ -279,7 +279,7 @@ module.exports = {
             if (doCheck && tempkeywords.substr(i,1) == `(`)
               keywords += `'`;
 
-          }  
+          }
         }
 
         output.value = `Dcl-` + field + ` ` + name + ` ` + type + ` ` + keywords;
