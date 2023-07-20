@@ -15,7 +15,7 @@ function RpgleFree() {
   const editor = vscode.window.activeTextEditor;
   const eol = editor.document.eol === 1 ? '\n' : '\r\n';
 
-  // Get the selected text from the editor 
+  // Get the selected text from the editor
   let curRange = new vscode.Range(editor.selection.start, editor.selection.end);
   let text = editor.document.getText(editor.selection);
 
@@ -27,7 +27,7 @@ function RpgleFree() {
     text = '**FREE' + eol + editor.document.getText();
   };
 
-  // Break into an array 
+  // Break into an array
   let lines = text.split(eol);
 
   // Start with the indent value being a constant
@@ -42,15 +42,15 @@ function RpgleFree() {
   editor.edit(editBuilder => {
     editBuilder.replace(curRange,lines.join(eol));
   })
-  
+
   vscode.window.showInformationMessage(`Selected text converted to free format`);
 
   vscode.commands.executeCommand('editor.action.formatDocument');
-  
+
 }
 
 export function activate(context) {
-	
+
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "vscode-rpgfree" is now active!');
