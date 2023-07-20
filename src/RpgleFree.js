@@ -183,6 +183,11 @@ module.exports = class RpgleFree {
     let fixedSql = false;
     let lastBlock = ``;
     let index = 0;
+    const indentLine = (line) => {
+      // ignredColumns.length = 3, and there are 4 spaces we're adding everywhere
+      return `${' '.repeat(7 + spaces)}${line}`;
+    };
+
     for (index = 0; index < length; index++) {
       if (this.lines[index] === undefined) continue;
         
@@ -196,7 +201,14 @@ module.exports = class RpgleFree {
       }
 
       ignoredColumns = line.substring(1, 4);
-      
+      if (ignoredColumns.trim() !== '') {
+        if (comment.trim() !== '') {
+          comment = ` ${ignoredColumns}`;
+        } else {
+          comment = ` ${ignoredColumns} | ${comment}`;
+        }
+      }
+
       if (this.lines[index+1]) {
         nextline = ` ` + this.lines[index+1].padEnd(80);
         if (nextline.length > 81) 
@@ -284,7 +296,7 @@ module.exports = class RpgleFree {
         case isMove:
           result = this.suggestMove(result.move);
           if (result.change) {
-            this.lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
+            this.lines[index] = indentLine(result.value);
           }
           break;
   
@@ -299,7 +311,7 @@ module.exports = class RpgleFree {
   
         case result.remove:
           if (comment.trim() !== ``) {
-            this.lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + `//` + comment;
+            this.lines[index] = indentLine(`//${comment}`);
           } else {
             this.lines.splice(index, 1);
             index--;
@@ -318,8 +330,8 @@ module.exports = class RpgleFree {
             this.lines.splice(index, 1);
   
             for (let y in result.arrayoutput) {
-              result.arrayoutput[y] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.arrayoutput[y];
-  
+              result.arrayoutput[y] = indentLine(result.arrayoutput[y]);
+
               this.lines.splice(index, 0, result.arrayoutput[y]);
               //result.arrayoutput.pop();
               
@@ -334,7 +346,7 @@ module.exports = class RpgleFree {
   
           } else {
 
-            this.lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
+            this.lines[index] = indentLine(result.value);
             if (comment.trim() !== ``) {
               this.lines[index] += ` //` + comment;
             }
@@ -361,7 +373,7 @@ module.exports = class RpgleFree {
       this.lines.splice(index, 1);
 
       for (let y in result.arrayoutput) {
-        result.arrayoutput[y] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.arrayoutput[y];
+        result.arrayoutput[y] = indentLine(result.arrayoutput[y]);
 
         this.lines.splice(index, 0, result.arrayoutput[y]);
         index++;
