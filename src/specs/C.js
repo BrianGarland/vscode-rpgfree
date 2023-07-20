@@ -200,6 +200,15 @@ module.exports = {
       case `CLOSE`:
         output.value = opcode + ` ` + factor2;
         break;
+      case 'DEFINE':
+        const fac1 = factor1.toUpperCase();
+        if (fac1 === `*LIKE`) {
+          output.value = `Dcl-S ${result} LIKE(${factor2})`;
+        } else if (fac1 === `*DTAARA`) {
+          const name = factor2 !== null && factor2 !== undefined && factor2.trim() !== '' ? factor2 : '*LDA';
+          output.value = `Dcl-S ${result} DTAARA(${name})`;
+        }
+        break;
       case `DELETE`:
         if (Lists[factor1.toUpperCase()])
           output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
