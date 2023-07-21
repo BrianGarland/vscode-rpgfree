@@ -30,8 +30,9 @@ module.exports = class RpgleFree {
   }
 
   addVar(obj) {
-    if (obj.standalone === true)
+    if (obj.standalone === true) {
       this.vars[obj.name.toUpperCase()] = obj;
+    }
   }
 
   suggestMove(obj) {
@@ -44,20 +45,19 @@ module.exports = class RpgleFree {
     let targetVar = this.vars[obj.target.toUpperCase()];
 
     if (sourceVar === undefined) {
-      if (obj.source.startsWith(`'`)) { //This means it's a character
+      //This means it's a character
+      if (obj.source.startsWith(`'`)) {
         sourceVar = {
           name: obj.source,
           type: `A`,
           len: (obj.source.length - 2)
         }
 
+        //Basically.. if we're assuming that if the targetvar
+        //is undefined (probably in a file) but we are moving
+        //character date into it, let's assume it's a char field
         if (targetVar === undefined) {
-          //Basically.. if we're assuming that if the targetvar
-          //is undefined (probably in a file) but we are moving
-          //character date into it, let's assume it's a char field
-
           this.messages.push(new Message(this.currentLine, `Assuming ` + obj.target + ` is a character field for MOVE/MOVEL operation.`));
-
           targetVar = {
             name: obj.target,
             type: `A`
@@ -103,41 +103,40 @@ module.exports = class RpgleFree {
 
       switch (targetVar.type) {
         case `S`: //numeric (not specific to packed or zoned)
-          result.value = assignee + ` = ` + sourceVar.name;
           break;
 
         case `D`: //date
           if (sourceVar.name.toUpperCase() === `*DATE`) {
             result.value = targetVar.name + ` = ` + sourceVar.name;
+          } else if (obj.attr === ``) {
+            result.value = targetVar.name + ` = %Date(` + sourceVar.name + `)`;
           } else {
-            if (obj.attr === ``)
-              result.value = targetVar.name + ` = %Date(` + sourceVar.name + `)`;
-            else
-              result.value = targetVar.name + ` = %Date(` + sourceVar.name + `:` + obj.attr + `)`;
+            result.value = targetVar.name + ` = %Date(` + sourceVar.name + `:` + obj.attr + `)`;
           }
           break;
 
         case `A`: //character
           if (obj.padded) {
-            if (obj.dir === `MOVEL`)
+            if (obj.dir === `MOVEL`) {
               assignee = targetVar.name;
-            else
+            } else {
               assignee = `EvalR ` + targetVar.name;
+            }
           } else {
-            if (obj.dir === `MOVEL`)
-              if (sourceVar.const)
+            if (obj.dir === `MOVEL`) {
+              if (sourceVar.const) {
                 assignee = `%Subst(` + targetVar.name + `:1:` + sourceVar.len + `)`;
-              else
+              } else {
                 assignee = `%Subst(` + targetVar.name + `:1:%Len(` + sourceVar.name + `))`;
-            else
-              if (sourceVar.const)
-                assignee = `%Subst(` + targetVar.name + `:%Len(` + targetVar.name + `)-` + sourceVar.len + `)`;
-              else
-                assignee = `%Subst(` + targetVar.name + `:%Len(` + targetVar.name + `)-%Len(` + sourceVar.name + `))`;
+              }
+            } else if (sourceVar.const) {
+              assignee = `%Subst(` + targetVar.name + `:%Len(` + targetVar.name + `)-` + sourceVar.len + `)`;
+            } else {
+              assignee = `%Subst(` + targetVar.name + `:%Len(` + targetVar.name + `)-%Len(` + sourceVar.name + `))`;
+            }
           }
 
           switch (sourceVar.type) {
-
             case `A`:
               result.value = assignee + ` = ` + sourceVar.name;
               break;
@@ -152,15 +151,14 @@ module.exports = class RpgleFree {
 
             case `D`:
             case `T`:
-              if (obj.attr !== ``)
+              if (obj.attr !== ``) {
                 result.value = assignee + ` = %Char(` + sourceVar.name + `:` + obj.attr + `)`;
-              else
+              } else {
                 result.value = assignee + ` = %Char(` + sourceVar.name + `)`;
+              }
           }
-
           break;
       }
-
     }
 
     if (result.value !== ``) {
@@ -187,7 +185,9 @@ module.exports = class RpgleFree {
     };
 
     for (index = 0; index < length; index++) {
-      if (this.lines[index] === undefined) continue;
+      if (this.lines[index] === undefined) {
+        continue;
+      }
 
       this.currentLine = index;
 
@@ -202,10 +202,12 @@ module.exports = class RpgleFree {
 
       if (this.lines[index + 1]) {
         nextline = ` ` + this.lines[index + 1].padEnd(80);
-        if (nextline.length > 81)
+        if (nextline.length > 81) {
           nextline = nextline.substring(0, 81);
-      } else
+        }
+      } else {
         nextline = ``;
+      }
 
       spec = line[6].toUpperCase();
 
@@ -238,12 +240,12 @@ module.exports = class RpgleFree {
 
         case `*`:
           spec = ``;
-
           comment = line.substring(8).trimEnd();
-          if (comment !== ``)
+          if (comment !== ``) {
             this.lines[index] = ``.padEnd(8) + ``.padEnd(spaces) + `//` + comment;
-          else
+          } else {
             this.lines[index] = ``;
+          }
           break;
 
         case `+`:
@@ -251,7 +253,6 @@ module.exports = class RpgleFree {
           if (fixedSql)
             spec = `C`;
           break;
-
       }
 
       if (specs[spec] !== undefined) {
@@ -270,8 +271,9 @@ module.exports = class RpgleFree {
 
         wasLIKEDS = (result.isLIKEDS === true);
 
-        if (result.var !== undefined)
+        if (result.var !== undefined) {
           this.addVar(result.var);
+        }
 
         isMove = (result.move !== undefined);
         hasKeywords = (result.aboveKeywords !== undefined);
@@ -313,13 +315,9 @@ module.exports = class RpgleFree {
           case result.change:
             spaces += result.beforeSpaces;
           // no break, need default logic too
-
           default:
-
             if (result.arrayoutput) {
-
               this.lines.splice(index, 1);
-
               for (let y in result.arrayoutput) {
                 result.arrayoutput[y] = indentLine(result.arrayoutput[y]);
 
@@ -332,11 +330,8 @@ module.exports = class RpgleFree {
               while (result.arrayoutput.length > 0) {
                 result.arrayoutput.pop();
               }
-
               index--;
-
             } else {
-
               this.lines[index] = indentLine(result.value);
               if (comment.trim() !== ``) {
                 this.lines[index] += ` //` + comment;
@@ -346,9 +341,7 @@ module.exports = class RpgleFree {
 
             spaces += result.nextSpaces;
             break;
-
         }
-
       } else {
         if (wasSub && line[7] !== `*`) {
           endBlock(this.lines, this.indent);
@@ -356,24 +349,16 @@ module.exports = class RpgleFree {
       }
     }
 
-
-
     // catch any held info incase the last line was not a "spec"
     if (result.arrayoutput) {
-
       this.lines.splice(index, 1);
-
       for (let y in result.arrayoutput) {
         result.arrayoutput[y] = indentLine(result.arrayoutput[y]);
-
         this.lines.splice(index, 0, result.arrayoutput[y]);
         index++;
         length++;
       }
-
     }
-
-
 
     function endBlock(lines, indent) {
       spaces -= indent;
@@ -384,7 +369,5 @@ module.exports = class RpgleFree {
       }
       wasSub = false;
     }
-
   }
-
 }
