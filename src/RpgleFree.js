@@ -105,37 +105,42 @@ module.exports = class RpgleFree {
 
       switch (targetVar.type) {
       case `S`: //numeric (not specific to packed or zoned)
-        result.value = assignee + ` = ` + sourceVar.name;
+        if (obj.dir === 'MOVEA') {
+          result.value = `%Subarr(${targetVar.name}:1) = %Subarr(${sourceVar.name}:1)`;
+        } else {
+          result.value = assignee + ` = ` + sourceVar.name;
+        }
         break;
 
       case `D`: //date
         if (sourceVar.name.toUpperCase() === `*DATE`) {
           result.value = targetVar.name + ` = ` + sourceVar.name;
-        } else {
-          if (obj.attr === ``)
+        } else if (obj.attr === ``) {
             result.value = targetVar.name + ` = %Date(` + sourceVar.name + `)`;
-          else
-            result.value = targetVar.name + ` = %Date(` + sourceVar.name + `:` + obj.attr + `)`;
+        } else {
+          result.value = targetVar.name + ` = %Date(` + sourceVar.name + `:` + obj.attr + `)`;
         }
         break;
 
       case `A`: //character
         if (obj.padded) {
-          if (obj.dir === `MOVEL`)
+          if (obj.dir === `MOVEL`) {
             assignee = targetVar.name;
-          else
+          } else {
             assignee = `EvalR ` + targetVar.name;
+          }
         } else {
-          if (obj.dir === `MOVEL`)
-            if (sourceVar.const)
+          if (obj.dir === `MOVEL`) {
+            if (sourceVar.const) {
               assignee = `%Subst(` + targetVar.name + `:1:` + sourceVar.len + `)`;
-            else
+            } else {
               assignee = `%Subst(` + targetVar.name + `:1:%Len(` + sourceVar.name + `))`;
-          else
-          if (sourceVar.const)
+            }
+          } else if (sourceVar.const) {
             assignee = `%Subst(` + targetVar.name + `:%Len(` + targetVar.name + `)-` + sourceVar.len + `)`;
-          else
+          } else {
             assignee = `%Subst(` + targetVar.name + `:%Len(` + targetVar.name + `)-%Len(` + sourceVar.name + `))`;
+          }
         }
 
         switch (sourceVar.type) {

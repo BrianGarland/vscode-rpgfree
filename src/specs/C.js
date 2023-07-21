@@ -432,6 +432,7 @@ module.exports = {
         output.nextSpaces = indent;
         break;
       case `MOVE`:
+      case `MOVEA`:
       case `MOVEL`:
         output.move = {
          target: result,
