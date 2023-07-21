@@ -433,14 +433,13 @@ module.exports = {
         break;
       case `MOVE`:
       case `MOVEL`:
-        //output.move = {
-        //  target: result,
-        //  source: factor2,
-        //  attr: factor1,
-        //  dir: plainOp,
-        //  padded: (extender === `P`)
-        //}
-        output.ignore = true;
+        output.move = {
+         target: result,
+         source: factor2,
+         attr: factor1,
+         dir: plainOp,
+         padded: (extender === `P`)
+        }
         break;
       case `MULT`:
         output.value = result + ` = ` + factor1 + ` * ` + factor2;
