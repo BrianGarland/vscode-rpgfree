@@ -9,14 +9,14 @@ module.exports = {
       nextSpaces: 0
     };
 
-    let name = input.substr(7, 10).trim(); //File name
-    let type = input.substr(17, 1).toUpperCase(); // I, U, O, C
-    let fileadd = input.substr(20, 1).toUpperCase(); // A
-    let external = input.substr(22, 1).toUpperCase(); // F, E
-    let recordLength = input.substr(23, 5).toUpperCase();
-    let field = input.substr(34, 1).toUpperCase(); //KEYED
-    let device = input.substr(36, 7).toUpperCase().trim(); //device: DISK, WORKSTN
-    let keywords = input.substr(44).trim();
+    let name = input.substring(7, 17).trim(); //File name
+    let type = input.substring(17, 18).toUpperCase(); // I, U, O, C
+    let fileadd = input.substring(20, 21).toUpperCase(); // A
+    let external = input.substring(22, 23).toUpperCase(); // F, E
+    let recordLength = input.substring(23, 28).toUpperCase();
+    let field = input.substring(34, 35).toUpperCase(); //KEYED
+    let device = input.substring(36, 43).toUpperCase().trim(); //device: DISK, WORKSTN
+    let keywords = input.substring(44).trim();
 
     output.value = `Dcl-F ` + name;
 
