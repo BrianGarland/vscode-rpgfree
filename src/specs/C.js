@@ -1,9 +1,9 @@
-let LastKey = '';
-let Lists = {};
+let lastKey = '';
+let lists = {};
 let doingCALL = false;
 let doingENTRY = false;
 
-const EndList = [];
+const endList = [];
 
 export function Parse(input, indent, wasSub) {
   const output = {
@@ -49,7 +49,7 @@ export function Parse(input, indent, wasSub) {
 
   if (doingCALL && plainOp != 'PARM') {
     doingCALL = false;
-    arrayoutput.push(`${LastKey}(${Lists[LastKey].join(':')});`);
+    arrayoutput.push(`${lastKey}(${lists[lastKey].join(':')});`);
   }
 
   if (doingENTRY && plainOp != 'PARM') {
@@ -77,8 +77,8 @@ export function Parse(input, indent, wasSub) {
     switch (plainOp) {
       case 'PLIST':
       case 'KLIST':
-        LastKey = factor1.toUpperCase();
-        Lists[LastKey] = [];
+        lastKey = factor1.toUpperCase();
+        lists[lastKey] = [];
         if (plainOp == 'PLIST' && factor1.toUpperCase() == '*ENTRY') {
           doingENTRY = true;
         } else {
@@ -91,7 +91,7 @@ export function Parse(input, indent, wasSub) {
         if (doingENTRY) {
           break;
         }
-        Lists[LastKey].push(result);
+        lists[lastKey].push(result);
         output.remove = true;
         break;
       case 'ACQ':
@@ -155,13 +155,13 @@ export function Parse(input, indent, wasSub) {
         factor2 = factor2.substring(1, factor2.length - 1);
         // result may containe a PLIST name
         if (result != '') {
-          if (Lists[result.toUpperCase()]) {
-            output.value = `${factor2}(${Lists[result.toUpperCase()].join(':')})`;
+          if (lists[result.toUpperCase()]) {
+            output.value = `${factor2}(${lists[result.toUpperCase()].join(':')})`;
           }
         } else {
           output.remove = true;
-          LastKey = factor2.toUpperCase();
-          Lists[LastKey] = [];
+          lastKey = factor2.toUpperCase();
+          lists[lastKey] = [];
           doingCALL = true;
         }
         break;
@@ -177,8 +177,8 @@ export function Parse(input, indent, wasSub) {
         output.value = `${result} = ${factor1} + '${' '.repeat(spaces)}' + ${factor2}`;
         break;
       case `CHAIN`:
-        if (Lists[factor1.toUpperCase()]) {
-          output.value = `${opcode} (${Lists[factor1.toUpperCase()].join(':')}) ${factor2} ${result}`;
+        if (lists[factor1.toUpperCase()]) {
+          output.value = `${opcode} (${lists[factor1.toUpperCase()].join(':')}) ${factor2} ${result}`;
         } else {
           output.value = `${opcode} ${factor1} ${factor2} ${result}`;
         }
@@ -212,8 +212,8 @@ export function Parse(input, indent, wasSub) {
         }
         break;
       case 'DELETE':
-        if (Lists[factor1.toUpperCase()]) {
-          output.value = `${opcode} (${Lists[factor1.toUpperCase()].join(`:`)}) ${factor2}`;
+        if (lists[factor1.toUpperCase()]) {
+          output.value = `${opcode} (${lists[factor1.toUpperCase()].join(`:`)}) ${factor2}`;
         } else if (factor1 != '') {
           output.value = `${opcode} ${factor1} ${factor2}`;
         } else {
@@ -227,80 +227,80 @@ export function Parse(input, indent, wasSub) {
         if (condition.ind != '') {
           output.value = `If *in${condition.ind.toUpperCase()} = ${((condition.not == true) ? '*Off' : '*On')}`;
           output.nextSpaces = indent;
-          EndList.push('Endif');
+          endList.push('Endif');
           condition.ind = '';
         }
         else {
           output.value = `For ${result} = ${factor1} to ${factor2}`;
           output.nextSpaces = indent;
-          EndList.push('Enddo');
+          endList.push('Enddo');
         }
         break;
       case 'DOU':
       case 'DOW':
         output.value = `${opcode} ${extended}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DOUEQ':
         output.value = `Dou ${factor1} = ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DOUNE':
         output.value = `Dou ${factor1} <> ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DOUGT':
         output.value = `Dou ${factor1} > ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DOULT':
         output.value = `Dou ${factor1} < ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DOUGE':
         output.value = `Dou ${factor1} >= ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DOULE':
         output.value = `Dou ${factor1} <= ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DOWEQ':
         output.value = `Dow ${factor1} = ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DOWNE':
         output.value = `Dow ${factor1} <> ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DOWGT':
         output.value = `Dow ${factor1} > ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DOWLT':
         output.value = `Dow ${factor1} < ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DOWGE':
         output.value = `Dow ${factor1} >= ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DOWLE':
         output.value = `Dow ${factor1} <= ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Enddo');
+        endList.push('Enddo');
         break;
       case 'DSPLY':
         output.value = `${opcode} (${factor1}) ${factor2} ${result}`;
@@ -319,9 +319,9 @@ export function Parse(input, indent, wasSub) {
         output.nextSpaces = indent;
         break;
       case 'END':
-        if (EndList.length > 0) {
+        if (endList.length > 0) {
           output.beforeSpaces = -indent;
-          output.value = EndList.pop();
+          output.value = endList.pop();
         } else {
           output.message = `Operation ${plainOp} will not convert; no matching block found.`;
         }
@@ -329,12 +329,12 @@ export function Parse(input, indent, wasSub) {
       case 'ENDDO':
         output.beforeSpaces = -indent;
         output.value = opcode;
-        EndList.pop();
+        endList.pop();
         break;
       case 'ENDIF':
         output.beforeSpaces = -indent;
         output.value = opcode;
-        EndList.pop();
+        endList.pop();
         break;
       case 'ENDMON':
         output.beforeSpaces = -indent;
@@ -343,7 +343,7 @@ export function Parse(input, indent, wasSub) {
       case 'ENDSL':
         output.beforeSpaces = -(indent * 2);
         output.value = opcode;
-        EndList.pop();
+        endList.pop();
         break;
       case 'ENDSR':
         output.beforeSpaces = -indent;
@@ -374,37 +374,37 @@ export function Parse(input, indent, wasSub) {
       case 'IF':
         output.value = `${opcode} ${extended}`;
         output.nextSpaces = indent;
-        EndList.push('Endif');
+        endList.push('Endif');
         break;
       case 'IFGT':
         output.value = `If ${factor1} > ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Endif');
+        endList.push('Endif');
         break;
       case 'IFLT':
         output.value = `If ${factor1} < ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Endif');
+        endList.push('Endif');
         break;
       case 'IFEQ':
         output.value = `If ${factor1} = ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Endif');
+        endList.push('Endif');
         break;
       case 'IFNE':
         output.value = `If ${factor1} <> ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Endif');
+        endList.push('Endif');
         break;
       case 'IFGE':
         output.value = `If ${factor1} >= ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Endif');
+        endList.push('Endif');
         break;
       case 'IFLE':
         output.value = `If ${factor1} <= ${factor2}`;
         output.nextSpaces = indent;
-        EndList.push('Endif');
+        endList.push('Endif');
         break;
       case 'IN':
         output.value = `${opcode} ${factor1} ${factor2}`;
@@ -493,8 +493,8 @@ export function Parse(input, indent, wasSub) {
         }
         break;
       case 'READE':
-        if (Lists[factor1.toUpperCase()]) {
-          output.value = `${opcode} (${Lists[factor1.toUpperCase()].join(':')}) ${factor2} ${result}`;
+        if (lists[factor1.toUpperCase()]) {
+          output.value = `${opcode} (${lists[factor1.toUpperCase()].join(':')}) ${factor2} ${result}`;
         } else {
           output.value = `${opcode} ${factor1} ${factor2} ${result}`;
         }
@@ -503,8 +503,8 @@ export function Parse(input, indent, wasSub) {
         output.value = `${opcode} ${factor2} ${result}`;
         break;
       case 'READPE':
-        if (Lists[factor1.toUpperCase()]) {
-          output.value = `${opcode} (${Lists[factor1.toUpperCase()].join(':')}) ${factor2} ${result}`;
+        if (lists[factor1.toUpperCase()]) {
+          output.value = `${opcode} (${lists[factor1.toUpperCase()].join(':')}) ${factor2} ${result}`;
         } else {
           output.value = `${opcode} ${factor1} ${factor2} ${result}`;
         }
@@ -521,11 +521,11 @@ export function Parse(input, indent, wasSub) {
       case 'SELECT':
         output.value = opcode;
         output.nextSpaces = (indent * 2);
-        EndList.push('Endsl');
+        endList.push('Endsl');
         break;
       case 'SETGT':
-        if (Lists[factor1.toUpperCase()]) {
-          output.value = `${opcode} (${Lists[factor1.toUpperCase()].join(':')}) ${factor2}`;
+        if (lists[factor1.toUpperCase()]) {
+          output.value = `${opcode} (${lists[factor1.toUpperCase()].join(':')}) ${factor2}`;
         } else {
           output.value = `${opcode} ${factor1} ${factor2}`;
         }
@@ -538,8 +538,8 @@ export function Parse(input, indent, wasSub) {
         }
         break;
       case 'SETLL':
-        if (Lists[factor1.toUpperCase()]) {
-          output.value = `${opcode} (${Lists[factor1.toUpperCase()].join(':')}) ${factor2}`;
+        if (lists[factor1.toUpperCase()]) {
+          output.value = `${opcode} (${lists[factor1.toUpperCase()].join(':')}) ${factor2}`;
         } else {
           output.value = `${opcode} ${factor1} ${factor2}`;
         }
