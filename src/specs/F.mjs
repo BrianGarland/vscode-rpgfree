@@ -21,7 +21,7 @@ export function Parse(input, indent, wasSub) {
 
   switch (type) {
     case 'I':
-      if (fileadd == 'A')
+      if (fileadd === 'A')
         type = '*Input:*Output';
 
       else
@@ -33,7 +33,7 @@ export function Parse(input, indent, wasSub) {
       break;
 
     case 'O':
-      if (device != 'PRINTER')
+      if (device !== 'PRINTER')
         type = '*Output';
 
       else
@@ -41,7 +41,7 @@ export function Parse(input, indent, wasSub) {
       break;
 
     case 'C':
-      if (device != 'WORKSTN')
+      if (device !== 'WORKSTN')
         type = '*INPUT:*OUTPUT';
 
       else
@@ -53,20 +53,20 @@ export function Parse(input, indent, wasSub) {
       break;
   }
 
-  if (external != 'E') {
+  if (external !== 'E') {
     device = `${device}(${recordLength.trim()})`;
   }
-  if (device != 'DISK') {
+  if (device !== 'DISK') {
     output.value += ` ${device}`;
   }
-  if (type != '') {
+  if (type !== '') {
     output.value += ` Usage(${type})`;
   }
-  if (field == 'K') {
+  if (field === 'K') {
     output.value += ' Keyed';
   }
-  if (keywords != '') {
-    if (name == '') {
+  if (keywords !== '') {
+    if (name === '') {
       output.aboveKeywords = keywords;
     } else {
       output.value += ` ${keywords}`;
