@@ -3,10 +3,10 @@ let Lists = {};
 let doingCALL = false;
 let doingENTRY = false;
 
-let EndList = [];
+const EndList = [];
 
 export function Parse(input, indent, wasSub) {
-  let output = {
+  const output = {
     remove: false,
     change: false,
     value: '',
@@ -18,28 +18,28 @@ export function Parse(input, indent, wasSub) {
   let spaces = 0;
   let sep = '';
 
-  let factor1 = input.substr(12, 14).trim();
-  let opcode = input.substr(26, 10).trim().toUpperCase();
+  const factor1 = input.substr(12, 14).trim();
+  const opcode = input.substr(26, 10).trim().toUpperCase();
   let plainOp = '';
   let extender = '';
   let factor2 = input.substr(36, 14).trim();
-  let extended = input.substr(36).trim();
-  let result = input.substr(50, 14).trim();
+  const extended = input.substr(36).trim();
+  const result = input.substr(50, 14).trim();
 
-  let ind1 = input.substr(71, 2).trim();
-  let ind2 = input.substr(73, 2).trim();
-  let ind3 = input.substr(75, 2).trim();
+  const ind1 = input.substr(71, 2).trim();
+  const ind2 = input.substr(73, 2).trim();
+  const ind3 = input.substr(75, 2).trim();
 
   let period = '';
 
-  let condition = {
+  const condition = {
     not: (input.substr(9, 1).toUpperCase() === 'N'),
     ind: input.substr(10, 2).trim()
   };
 
-  let levelBreak = (input.substr(7, 1).toUpperCase() === 'L');
+  const levelBreak = (input.substr(7, 1).toUpperCase() === 'L');
 
-  let arrayoutput = [];
+  const arrayoutput = [];
 
   plainOp = opcode;
   if (plainOp.indexOf('(') >= 0) {
