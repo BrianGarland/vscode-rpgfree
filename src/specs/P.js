@@ -25,14 +25,14 @@ module.exports = {
       output.remove = true;
     } else {
       switch (input[24].toUpperCase()) {
-      case `B`:
-        output.value = (`Dcl-Proc ` + name + ` ` + keywords).trimRight();
-        output.nextSpaces = 2;
-        break;
-      case `E`:
-        output.beforeSpaces = -indent;
-        output.value = `End-Proc`;
-        break;
+        case `B`:
+          output.value = (`Dcl-Proc ` + name + ` ` + keywords).trimRight();
+          output.nextSpaces = 2;
+          break;
+        case `E`:
+          output.beforeSpaces = -indent;
+          output.value = `End-Proc`;
+          break;
       }
     }
 
