@@ -255,11 +255,13 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
       case 'DS':
       case 'PR':
       case 'PI':
-        if (field === 'DS' && input.substring(23, 24).trim().toUpperCase() === 'S') {
-          keywords = `PSDS ${keywords}`;
-        }
-        if (field === 'DS' && input.substring(23, 24).trim().toUpperCase() === 'U') {
-          keywords = `DTAARA(*AUTO) ${keywords}`;
+        const dsType = input.substring(23, 24).trim().toUpperCase();
+        if (field === 'DS') {
+          if (dsType === 'S') {
+            keywords = `PSDS ${keywords}`;
+          } else if (dsType === 'U') {
+            keywords = `DTAARA(*AUTO) ${keywords}`;
+          }
         }
 
         const DSisLIKEDS = keywords.indexOf('LIKEDS') >= 0;
