@@ -1,9 +1,15 @@
+import { Parse as C } from './specs/C.mjs';
+import { Parse as D } from './specs/D.mjs';
+import { Parse as F } from './specs/F.mjs';
+import { Parse as H } from './specs/H.mjs';
+import { Parse as P } from './specs/P.mjs';
+
 const specs = {
-  'C': require('./specs/C'),
-  'F': require('./specs/F'),
-  'D': require('./specs/D'),
-  'H': require('./specs/H'),
-  'P': require('./specs/P')
+  'C': C,
+  'D': D,
+  'F': F,
+  'H': H,
+  'P': P,
 };
 
 class Message {
@@ -13,7 +19,7 @@ class Message {
   }
 }
 
-module.exports = class RpgleFree {
+export class RpgleFree {
   constructor(lines, indent) {
     this.currentLine = -1;
     this.lines = lines;
@@ -256,7 +262,7 @@ module.exports = class RpgleFree {
       }
 
       if (specs[spec] !== undefined) {
-        result = specs[spec].Parse(line, this.indent, wasSub, wasLIKEDS);
+        result = specs[spec](line, this.indent, wasSub, wasLIKEDS);
 
         if (result.isSub === true) {
           if (result.isHead === true && wasSub && !wasLIKEDS) {

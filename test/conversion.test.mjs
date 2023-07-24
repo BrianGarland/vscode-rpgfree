@@ -1,5 +1,5 @@
 import { indent, read, runDirs, skipDirs, testName } from '../lib/testsuite.mjs';
-import RpgleFree from '../src/RpgleFree.js';
+import { RpgleFree } from '../src/RpgleFree.mjs';
 
 const testRun = async (_name, dir) => {
   const input = read(dir, 'in');
