@@ -41,20 +41,20 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
     keywords = keywords.slice(0, -1);
   }
 
-  if ((type == '') && output.var.standalone) {
-    if (decimals == '') {
+  if ((type === '') && output.var.standalone) {
+    if (decimals === '') {
       output.var.type = 'A'; //Character
     } else {
       output.var.type = 'S'; //Zoned
     }
   }
 
-  if (pos != '') {
+  if (pos !== '') {
     len = String(Number(len) - Number(pos) + 1);
     keywords = `Pos(${pos}) ${keywords}`;
   }
 
-  if (prevName != '') {
+  if (prevName !== '') {
     name = prevName;
     prevName = '';
   }
@@ -67,7 +67,7 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
     }
   }
 
-  if ((field == 'C') || (field == 'S')) {
+  if ((field === 'C') || (field === 'S')) {
     isSubf = false;
   }
 
@@ -84,10 +84,10 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         break;
 
       case 'B':
-        if (pos != '') {
+        if (pos !== '') {
           // When using positions binary decimal is only 2 or 4
           // This equates to 4 or 9 in free
-          if (Number(len) == 4) {
+          if (Number(len) === 4) {
             type = 'Bindec(9)';
           } else {
             type = 'Bindec(4)';
@@ -109,7 +109,7 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
           const start = keywords.toUpperCase().indexOf('DATFMT');
           const stop = keywords.toUpperCase().indexOf(')');
           type = `Date${keywords.substring(start + 6, stop + 1)}`;
-          if (start == 0) {
+          if (start === 0) {
             keywords = keywords.substring(stop + 1).trim();
           } else {
             keywords = `${keywords.substring(0, start - 1).trim()} ${keywords.substring(stop + 1).trim()}`;
@@ -157,7 +157,7 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         break;
 
       case 'P':
-        if (pos != '') {
+        if (pos !== '') {
           // When using positions packed length is one less than double the bytes
           type = `Packed(${String(Number(len) * 2 - 1)}:${decimals})`;
         } else {
@@ -177,7 +177,7 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
           const start = keywords.toUpperCase().indexOf('TIMFMT');
           const stop = keywords.toUpperCase().indexOf(')');
           type = `Time${keywords.substring(start + 6, stop + 1)}`;
-          if (start == 0) {
+          if (start === 0) {
             keywords = keywords.substring(stop + 1).trim();
           } else {
             keywords = `${keywords.substring(0, start - 1).trim()} ${keywords.substring(stop + 1).trim()}`;
@@ -222,10 +222,10 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         break;
 
       case '':
-        if (field == 'DS' && output.var.len != 0) {
+        if (field === 'DS' && output.var.len !== 0) {
           type = `Len(${len})`;
-        } else if (len != '') {
-          if (decimals == '') {
+        } else if (len !== '') {
+          if (decimals === '') {
             if (keywords.toUpperCase().indexOf('VARYING') >= 0) {
               keywords = keywords.replace(/varying/ig, '');
               type = 'Varchar';
@@ -256,27 +256,27 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
       case 'DS':
       case 'PR':
       case 'PI':
-        if (field == 'DS' && input.substring(23, 24).trim().toUpperCase() == 'S') {
+        if (field === 'DS' && input.substring(23, 24).trim().toUpperCase() === 'S') {
           keywords = `PSDS ${keywords}`;
         }
-        if (field == 'DS' && input.substring(23, 24).trim().toUpperCase() == 'U') {
+        if (field === 'DS' && input.substring(23, 24).trim().toUpperCase() === 'U') {
           keywords = `DTAARA(*AUTO) ${keywords}`;
         }
 
         const DSisLIKEDS = (keywords.toUpperCase().indexOf('LIKEDS') >= 0);
         output.isLIKEDS = DSisLIKEDS;
 
-        if (name == '') {
+        if (name === '') {
           name = '*N';
         }
 
-        isSubf = (field == 'DS');
-        output.isSub = (DSisLIKEDS == false);
+        isSubf = (field === 'DS');
+        output.isSub = (DSisLIKEDS === false);
         output.isHead = true;
 
         // if keywords contain 'EXTNAME' add apostrophes around name
         extname = keywords.toUpperCase().indexOf('EXTNAME');
-        if (extname != -1) {
+        if (extname !== -1) {
           tempkeywords = keywords;
           keywords = '';
           output.isSub = true;
@@ -284,13 +284,13 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
             if (i > extname && !doneCheck) {
               doCheck = true;
             }
-            if (doCheck && tempkeywords.substring(i, i + 1) == ')') {
+            if (doCheck && tempkeywords.substring(i, i + 1) === ')') {
               keywords += "'";
               doCheck = false;
               doneCheck = true;
             }
             keywords += tempkeywords.substring(i, i + 1);
-            if (doCheck && tempkeywords.substring(i, i + 1) == '(') {
+            if (doCheck && tempkeywords.substring(i, i + 1) === '(') {
               keywords += "'";
             }
           }
@@ -298,7 +298,7 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
 
         output.value = `Dcl-${field} ${name} ${type} ${keywords}`;
 
-        if (DSisLIKEDS == false) {
+        if (DSisLIKEDS === false) {
           output.isSub = true;
           output.nextSpaces = indent;
         }
@@ -307,11 +307,11 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         break;
 
       case '':
-        output.isSub = (wasLIKEDS == false);
-        if (name == '') {
+        output.isSub = (wasLIKEDS === false);
+        if (name === '') {
           name = '*N';
         }
-        if (name == '*N' && type == '') {
+        if (name === '*N' && type === '') {
           output.aboveKeywords = keywords;
           output.remove = true;
           output.blockType = blockType;
