@@ -18,7 +18,7 @@ export function Parse(input, indent, wasSub) {
   let spaces = 0;
   let sep = '';
 
-  const factor1 = input.substr(12, 14).trim();
+  const factor1 = input.substr(12, 14).trim().toUpperCase();
   const opcode = input.substr(26, 10).trim().toUpperCase();
   let plainOp = '';
   let extender = '';
@@ -77,9 +77,9 @@ export function Parse(input, indent, wasSub) {
     switch (plainOp) {
       case 'PLIST':
       case 'KLIST':
-        lastKey = factor1.toUpperCase();
+        lastKey = factor1;
         lists[lastKey] = [];
-        if (plainOp === 'PLIST' && factor1.toUpperCase() === '*ENTRY') {
+        if (plainOp === 'PLIST' && factor1 === '*ENTRY') {
           doingENTRY = true;
         } else {
           output.remove = true;
@@ -177,8 +177,8 @@ export function Parse(input, indent, wasSub) {
         output.value = `${result} = ${factor1} + '${' '.repeat(spaces)}' + ${factor2}`;
         break;
       case `CHAIN`:
-        if (lists[factor1.toUpperCase()]) {
-          output.value = `${opcode} (${lists[factor1.toUpperCase()].join(':')}) ${factor2} ${result}`;
+        if (lists[factor1]) {
+          output.value = `${opcode} (${lists[factor1].join(':')}) ${factor2} ${result}`;
         } else {
           output.value = `${opcode} ${factor1} ${factor2} ${result}`;
         }
@@ -203,17 +203,16 @@ export function Parse(input, indent, wasSub) {
         output.value = `${opcode} ${factor2}`;
         break;
       case 'DEFINE':
-        const fac1 = factor1.toUpperCase();
-        if (fac1 === '*LIKE') {
+        if (factor1 === '*LIKE') {
           output.value = `Dcl-S ${result} LIKE(${factor2})`;
-        } else if (fac1 === '*DTAARA') {
+        } else if (factor1 === '*DTAARA') {
           const name = factor2 !== null && factor2 !== undefined && factor2.trim() !== '' ? factor2 : '*LDA';
           output.value = `Dcl-S ${result} DTAARA(${name})`;
         }
         break;
       case 'DELETE':
-        if (lists[factor1.toUpperCase()]) {
-          output.value = `${opcode} (${lists[factor1.toUpperCase()].join(`:`)}) ${factor2}`;
+        if (lists[factor1]) {
+          output.value = `${opcode} (${lists[factor1].join(`:`)}) ${factor2}`;
         } else if (factor1 !== '') {
           output.value = `${opcode} ${factor1} ${factor2}`;
         } else {
@@ -493,8 +492,8 @@ export function Parse(input, indent, wasSub) {
         }
         break;
       case 'READE':
-        if (lists[factor1.toUpperCase()]) {
-          output.value = `${opcode} (${lists[factor1.toUpperCase()].join(':')}) ${factor2} ${result}`;
+        if (lists[factor1]) {
+          output.value = `${opcode} (${lists[factor1].join(':')}) ${factor2} ${result}`;
         } else {
           output.value = `${opcode} ${factor1} ${factor2} ${result}`;
         }
@@ -503,8 +502,8 @@ export function Parse(input, indent, wasSub) {
         output.value = `${opcode} ${factor2} ${result}`;
         break;
       case 'READPE':
-        if (lists[factor1.toUpperCase()]) {
-          output.value = `${opcode} (${lists[factor1.toUpperCase()].join(':')}) ${factor2} ${result}`;
+        if (lists[factor1]) {
+          output.value = `${opcode} (${lists[factor1].join(':')}) ${factor2} ${result}`;
         } else {
           output.value = `${opcode} ${factor1} ${factor2} ${result}`;
         }
@@ -524,8 +523,8 @@ export function Parse(input, indent, wasSub) {
         endList.push('Endsl');
         break;
       case 'SETGT':
-        if (lists[factor1.toUpperCase()]) {
-          output.value = `${opcode} (${lists[factor1.toUpperCase()].join(':')}) ${factor2}`;
+        if (lists[factor1]) {
+          output.value = `${opcode} (${lists[factor1].join(':')}) ${factor2}`;
         } else {
           output.value = `${opcode} ${factor1} ${factor2}`;
         }
@@ -538,8 +537,8 @@ export function Parse(input, indent, wasSub) {
         }
         break;
       case 'SETLL':
-        if (lists[factor1.toUpperCase()]) {
-          output.value = `${opcode} (${lists[factor1.toUpperCase()].join(':')}) ${factor2}`;
+        if (lists[factor1]) {
+          output.value = `${opcode} (${lists[factor1].join(':')}) ${factor2}`;
         } else {
           output.value = `${opcode} ${factor1} ${factor2}`;
         }
