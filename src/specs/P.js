@@ -15,7 +15,7 @@ export function Parse(input, indent, wasSub) {
 
   input = input.trimRight();
 
-  if (prevName != '') {
+  if (prevName !== '') {
     name = prevName;
     prevName = '';
   }
