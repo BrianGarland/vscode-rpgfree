@@ -23,7 +23,7 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
   let name = input.substring(7, 22).trim();
   const pos = input.substring(30, 33).trim();
   let len = input.substring(33, 40).trim();
-  let type = input.substring(40, 41).trim();
+  let type = input.substring(40, 41).trim().toUpperCase();
   const decimals = input.substring(41, 44).trim();
   const field = input.substring(24, 26).trim().toUpperCase();
   let keywords = input.substring(44).trim().toUpperCase();
@@ -71,7 +71,7 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
   }
 
   if (output.remove === false) {
-    switch (type.toUpperCase()) {
+    switch (type) {
       case 'A':
         if (keywords.indexOf('VARYING') >= 0) {
           keywords = keywords.replace(/VARYING/g, '');
