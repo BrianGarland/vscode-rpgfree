@@ -23,14 +23,14 @@ module.exports = {
       }
     };
 
-    let potentialName = input.substr(7).trim();
-    let name = input.substr(7, 15).trim();
-    let pos = input.substr(30, 3).trim();
-    let len = input.substr(33, 7).trim();
-    let type = input.substr(40, 1).trim();
-    let decimals = input.substr(41, 3).trim();
-    let field = input.substr(24, 2).trim().toUpperCase();
-    let keywords = input.substr(44).trim();
+    let potentialName = input.substring(7).trim();
+    let name = input.substring(7, 22).trim();
+    let pos = input.substring(30, 33).trim();
+    let len = input.substring(33, 40).trim();
+    let type = input.substring(40, 41).trim();
+    let decimals = input.substring(41, 44).trim();
+    let field = input.substring(24, 26).trim().toUpperCase();
+    let keywords = input.substring(44).trim();
     let doCheck = false;
     let doneCheck = false;
     let extname = -1;
@@ -42,7 +42,7 @@ module.exports = {
     output.var.len = Number(len);
 
     if (keywords.endsWith(`+`)) {
-      keywords = keywords.substr(0, keywords.length - 1);
+      keywords = keywords.slice(0, -1);
     }
 
     if ((type == ``) && output.var.standalone) {
@@ -64,7 +64,7 @@ module.exports = {
     }
 
     if (potentialName.endsWith(`...`)) {
-      prevName = potentialName.substr(0, potentialName.length - 3);
+      prevName = potentialName.slice(0, -3);
       output.remove = true;
       if (wasSub) {
         output.isSub = true;
@@ -112,11 +112,11 @@ module.exports = {
             // and add what ever (xxxx) was to type
             let start = keywords.toUpperCase().indexOf(`DATFMT`);
             let stop = keywords.toUpperCase().indexOf(`)`);
-            type = `Date` + keywords.substr(start + 6, stop - (start + 6) + 1);
+            type = `Date` + keywords.substring(start + 6, stop + 1);
             if (start == 0) {
-              keywords = keywords.substr(stop + 1).trim();
+              keywords = keywords.substring(stop + 1).trim();
             } else {
-              keywords = keywords.substr(0, start - 1).trim() + ` ` + keywords.substr(stop + 1).trim();
+              keywords = keywords.substring(0, start - 1).trim() + ` ` + keywords.substring(stop + 1).trim();
             }
           } else {
             type = `Date`;
@@ -180,11 +180,11 @@ module.exports = {
             // and add what ever (xxxx) was to type
             let start = keywords.toUpperCase().indexOf(`TIMFMT`);
             let stop = keywords.toUpperCase().indexOf(`)`);
-            type = `Time` + keywords.substr(start + 6, stop - (start + 6) + 1);
+            type = `Time` + keywords.substring(start + 6, stop + 1);
             if (start == 0) {
-              keywords = keywords.substr(stop + 1).trim();
+              keywords = keywords.substring(stop + 1).trim();
             } else {
-              keywords = keywords.substr(0, start - 1).trim() + ` ` + keywords.substr(stop + 1).trim();
+              keywords = keywords.substring(0, start - 1).trim() + ` ` + keywords.substring(stop + 1).trim();
             }
           } else {
             type = `Time`;
@@ -217,7 +217,7 @@ module.exports = {
         case `*`:
           let index = keywords.toUpperCase().indexOf(`PROCPTR`);
           if (index >= 0) {
-            let removeText = keywords.substr(index, 7);
+            let removeText = keywords.substring(index, index + 7);
             keywords = keywords.replace(removeText, ``);
             type = `Pointer(*PROC)`;
           } else {
@@ -260,10 +260,10 @@ module.exports = {
         case `DS`:
         case `PR`:
         case `PI`:
-          if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `S`) {
+          if (field == `DS` && input.substring(23, 24).trim().toUpperCase() == `S`) {
             keywords = `PSDS ` + keywords;
           }
-          if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `U`) {
+          if (field == `DS` && input.substring(23, 24).trim().toUpperCase() == `U`) {
             keywords = `DTAARA(*AUTO) ` + keywords;
           }
 
@@ -288,13 +288,13 @@ module.exports = {
               if (i > extname && !doneCheck) {
                 doCheck = true;
               }
-              if (doCheck && tempkeywords.substr(i, 1) == `)`) {
+              if (doCheck && tempkeywords.substring(i, i + 1) == `)`) {
                 keywords += `'`;
                 doCheck = false;
                 doneCheck = true;
               }
-              keywords += tempkeywords.substr(i, 1);
-              if (doCheck && tempkeywords.substr(i, 1) == `(`) {
+              keywords += tempkeywords.substring(i, i + 1);
+              if (doCheck && tempkeywords.substring(i, i + 1) == `(`) {
                 keywords += `'`;
               }
             }
