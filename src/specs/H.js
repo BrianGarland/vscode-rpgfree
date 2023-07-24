@@ -1,5 +1,5 @@
 export function Parse(input, indent, wasSub) {
-  let output = {
+  const output = {
     remove: false,
     change: false,
     value: '',
@@ -7,10 +7,9 @@ export function Parse(input, indent, wasSub) {
     beforeSpaces: 0,
     nextSpaces: 0
   };
+  const keywords = input.substr(7);
 
-  let keywords = input.substr(7);
   output.value = `Ctl-Opt ${keywords.trim()}`;
-
   if (output.value !== '') {
     output.change = true;
     output.value = `${output.value.trimRight()};`;
