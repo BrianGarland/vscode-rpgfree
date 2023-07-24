@@ -26,11 +26,10 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
   let type = input.substring(40, 41).trim();
   const decimals = input.substring(41, 44).trim();
   const field = input.substring(24, 26).trim().toUpperCase();
-  let keywords = input.substring(44).trim();
+  let keywords = input.substring(44).trim().toUpperCase();
   let doCheck = false;
   let doneCheck = false;
   let extname = -1;
-  let tempkeywords = '';
 
   output.var.standalone = (field === 'S');
   output.var.name = name;
@@ -74,8 +73,8 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
   if (output.remove === false) {
     switch (type.toUpperCase()) {
       case 'A':
-        if (keywords.toUpperCase().indexOf('VARYING') >= 0) {
-          keywords = keywords.replace(/varying/ig, '');
+        if (keywords.indexOf('VARYING') >= 0) {
+          keywords = keywords.replace(/VARYING/g, '');
           type = 'Varchar';
         } else {
           type = 'Char';
@@ -103,11 +102,11 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         break;
 
       case 'D':
-        if (keywords.toUpperCase().indexOf('DATFMT') >= 0) {
+        if (keywords.indexOf('DATFMT') >= 0) {
           // If a date format was provided we need to remove DATFMT(xxxx) from keywords
           // and add what ever (xxxx) was to type
-          const start = keywords.toUpperCase().indexOf('DATFMT');
-          const stop = keywords.toUpperCase().indexOf(')');
+          const start = keywords.indexOf('DATFMT');
+          const stop = keywords.indexOf(')');
           type = `Date${keywords.substring(start + 6, stop + 1)}`;
           if (start === 0) {
             keywords = keywords.substring(stop + 1).trim();
@@ -124,8 +123,8 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         break;
 
       case 'G':
-        if (keywords.toUpperCase().indexOf('VARYING') >= 0) {
-          keywords = keywords.replace(/varying/ig, '');
+        if (keywords.indexOf('VARYING') >= 0) {
+          keywords = keywords.replace(/VARYING/g, '');
           type = 'Vargraph';
         } else {
           type = 'Graph';
@@ -171,11 +170,11 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         break;
 
       case 'T':
-        if (keywords.toUpperCase().indexOf('TIMFMT') >= 0) {
+        if (keywords.indexOf('TIMFMT') >= 0) {
           // If a date format was provided we need to remove TIMFMT(xxxx) from keywords
           // and add what ever (xxxx) was to type
-          const start = keywords.toUpperCase().indexOf('TIMFMT');
-          const stop = keywords.toUpperCase().indexOf(')');
+          const start = keywords.indexOf('TIMFMT');
+          const stop = keywords.indexOf(')');
           type = `Time${keywords.substring(start + 6, stop + 1)}`;
           if (start === 0) {
             keywords = keywords.substring(stop + 1).trim();
@@ -211,7 +210,7 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         break;
 
       case '*':
-        const index = keywords.toUpperCase().indexOf('PROCPTR');
+        const index = keywords.indexOf('PROCPTR');
         if (index >= 0) {
           const removeText = keywords.substring(index, index + 7);
           keywords = keywords.replace(removeText, '');
@@ -226,8 +225,8 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
           type = `Len(${len})`;
         } else if (len !== '') {
           if (decimals === '') {
-            if (keywords.toUpperCase().indexOf('VARYING') >= 0) {
-              keywords = keywords.replace(/varying/ig, '');
+            if (keywords.indexOf('VARYING') >= 0) {
+              keywords = keywords.replace(/VARYING/g, '');
               type = 'Varchar';
             } else {
               type = 'Char';
@@ -263,7 +262,7 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
           keywords = `DTAARA(*AUTO) ${keywords}`;
         }
 
-        const DSisLIKEDS = (keywords.toUpperCase().indexOf('LIKEDS') >= 0);
+        const DSisLIKEDS = keywords.indexOf('LIKEDS') >= 0;
         output.isLIKEDS = DSisLIKEDS;
 
         if (name === '') {
@@ -275,9 +274,9 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         output.isHead = true;
 
         // if keywords contain 'EXTNAME' add apostrophes around name
-        extname = keywords.toUpperCase().indexOf('EXTNAME');
+        extname = keywords.indexOf('EXTNAME');
         if (extname !== -1) {
-          tempkeywords = keywords;
+          let tempkeywords = keywords;
           keywords = '';
           output.isSub = true;
           for (var i = 0; i < tempkeywords.length; i++) {
