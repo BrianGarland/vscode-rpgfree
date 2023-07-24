@@ -21,53 +21,55 @@ module.exports = {
     output.value = `Dcl-F ` + name;
 
     switch (type) {
-    case `I`:
-      if (fileadd == 'A')
-        type = `*Input:*Output`;
-      else
-        type = `*Input`;
-      break;
-    case `U`:
-      type = `*Update:*Delete:*Output`;
-      break;
-    case `O`:
-      if (device != `PRINTER`)
-        type = `*Output`;
-      else
-        type = ``;
-      break;
-    case `C`:
-      if (device != `WORKSTN`)
-        type = `*INPUT:*OUTPUT`;
-      else
-        type = ``;
-      break;
+      case `I`:
+        if (fileadd == 'A')
+          type = `*Input:*Output`;
+        else
+          type = `*Input`;
+        break;
 
-    default:
-      type = ``;
-      break;
+      case `U`:
+        type = `*Update:*Delete:*Output`;
+        break;
+
+      case `O`:
+        if (device != `PRINTER`)
+          type = `*Output`;
+        else
+          type = ``;
+        break;
+
+      case `C`:
+        if (device != `WORKSTN`)
+          type = `*INPUT:*OUTPUT`;
+        else
+          type = ``;
+        break;
+
+      default:
+        type = ``;
+        break;
     }
 
     if (external != `E`) {
       device = device + `(` + recordLength.trim() + `)`;
     }
-
-    if (device != `DISK`)
+    if (device != `DISK`) {
       output.value += ` ` + device;
-
-    if (type != ``)
-      output.value += ` Usage(` + type + `)`;
-
-    if (field == `K`)
-      output.value += ` Keyed`;
-
-    if (keywords != ``) {
-      if (name == ``)
-        output.aboveKeywords = keywords;
-      else
-        output.value += ` ` + keywords;
     }
-
+    if (type != ``) {
+      output.value += ` Usage(` + type + `)`;
+    }
+    if (field == `K`) {
+      output.value += ` Keyed`;
+    }
+    if (keywords != ``) {
+      if (name == ``) {
+        output.aboveKeywords = keywords;
+      } else {
+        output.value += ` ` + keywords;
+      }
+    }
     if (output.value !== ``) {
       output.change = true;
       output.value = output.value.trimRight() + `;`;
