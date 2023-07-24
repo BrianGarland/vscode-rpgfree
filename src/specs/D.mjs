@@ -3,7 +3,7 @@ let prevName = '';
 let blockType = '';
 
 export function Parse(input, indent, wasSub, wasLIKEDS) {
-  let output = {
+  const output = {
     remove: false,
     change: false,
     value: '',
@@ -19,13 +19,13 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
     }
   };
 
-  let potentialName = input.substring(7).trim();
+  const potentialName = input.substring(7).trim();
   let name = input.substring(7, 22).trim();
-  let pos = input.substring(30, 33).trim();
+  const pos = input.substring(30, 33).trim();
   let len = input.substring(33, 40).trim();
   let type = input.substring(40, 41).trim();
-  let decimals = input.substring(41, 44).trim();
-  let field = input.substring(24, 26).trim().toUpperCase();
+  const decimals = input.substring(41, 44).trim();
+  const field = input.substring(24, 26).trim().toUpperCase();
   let keywords = input.substring(44).trim();
   let doCheck = false;
   let doneCheck = false;
@@ -106,8 +106,8 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         if (keywords.toUpperCase().indexOf('DATFMT') >= 0) {
           // If a date format was provided we need to remove DATFMT(xxxx) from keywords
           // and add what ever (xxxx) was to type
-          let start = keywords.toUpperCase().indexOf('DATFMT');
-          let stop = keywords.toUpperCase().indexOf(')');
+          const start = keywords.toUpperCase().indexOf('DATFMT');
+          const stop = keywords.toUpperCase().indexOf(')');
           type = `Date${keywords.substring(start + 6, stop + 1)}`;
           if (start == 0) {
             keywords = keywords.substring(stop + 1).trim();
@@ -174,8 +174,8 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         if (keywords.toUpperCase().indexOf('TIMFMT') >= 0) {
           // If a date format was provided we need to remove TIMFMT(xxxx) from keywords
           // and add what ever (xxxx) was to type
-          let start = keywords.toUpperCase().indexOf('TIMFMT');
-          let stop = keywords.toUpperCase().indexOf(')');
+          const start = keywords.toUpperCase().indexOf('TIMFMT');
+          const stop = keywords.toUpperCase().indexOf(')');
           type = `Time${keywords.substring(start + 6, stop + 1)}`;
           if (start == 0) {
             keywords = keywords.substring(stop + 1).trim();
@@ -211,9 +211,9 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         break;
 
       case '*':
-        let index = keywords.toUpperCase().indexOf('PROCPTR');
+        const index = keywords.toUpperCase().indexOf('PROCPTR');
         if (index >= 0) {
-          let removeText = keywords.substring(index, index + 7);
+          const removeText = keywords.substring(index, index + 7);
           keywords = keywords.replace(removeText, '');
           type = 'Pointer(*PROC)';
         } else {
@@ -263,7 +263,7 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
           keywords = `DTAARA(*AUTO) ${keywords}`;
         }
 
-        let DSisLIKEDS = (keywords.toUpperCase().indexOf('LIKEDS') >= 0);
+        const DSisLIKEDS = (keywords.toUpperCase().indexOf('LIKEDS') >= 0);
         output.isLIKEDS = DSisLIKEDS;
 
         if (name == '') {
