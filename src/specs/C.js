@@ -24,7 +24,7 @@ export function Parse(input, indent, wasSub) {
   let extender = '';
   let factor2 = input.substr(36, 14).trim().toUpperCase();
   const extended = input.substr(36).trim();
-  const result = input.substr(50, 14).trim();
+  const result = input.substr(50, 14).trim().toUpperCase();
 
   const ind1 = input.substr(71, 2).trim();
   const ind2 = input.substr(73, 2).trim();
@@ -155,8 +155,8 @@ export function Parse(input, indent, wasSub) {
         factor2 = factor2.substring(1, factor2.length - 1);
         // result may containe a PLIST name
         if (result !== '') {
-          if (lists[result.toUpperCase()]) {
-            output.value = `${factor2}(${lists[result.toUpperCase()].join(':')})`;
+          if (lists[result]) {
+            output.value = `${factor2}(${lists[result].join(':')})`;
           }
         } else {
           output.remove = true;
