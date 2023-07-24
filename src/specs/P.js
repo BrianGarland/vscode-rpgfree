@@ -11,8 +11,8 @@ module.exports = {
       nextSpaces: 0
     };
 
-    let name = input.substr(7, 16).trim();
-    let keywords = input.substr(44).trim();
+    let name = input.substring(7, 23).trim();
+    let keywords = input.substring(44).trim();
 
     input = input.trimRight();
 
@@ -21,7 +21,7 @@ module.exports = {
       prevName = '';
     }
     if (input.endsWith('...')) {
-      prevName = input.substr(7, input.length - 10).trim();
+      prevName = input.slice(7, -3).trim();
       output.remove = true;
     } else {
       switch (input[24].toUpperCase()) {
