@@ -22,7 +22,7 @@ export function Parse(input, indent, wasSub) {
   const opcode = input.substr(26, 10).trim().toUpperCase();
   let plainOp = '';
   let extender = '';
-  let factor2 = input.substr(36, 14).trim();
+  let factor2 = input.substr(36, 14).trim().toUpperCase();
   const extended = input.substr(36).trim();
   const result = input.substr(50, 14).trim();
 
@@ -160,7 +160,7 @@ export function Parse(input, indent, wasSub) {
           }
         } else {
           output.remove = true;
-          lastKey = factor2.toUpperCase();
+          lastKey = factor2;
           lists[lastKey] = [];
           doingCALL = true;
         }
