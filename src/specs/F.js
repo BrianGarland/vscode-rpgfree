@@ -3,7 +3,7 @@ module.exports = {
     let output = {
       remove: false,
       change: false,
-      value: ``,
+      value: '',
 
       beforeSpaces: 0,
       nextSpaces: 0
@@ -18,61 +18,61 @@ module.exports = {
     let device = input.substring(36, 43).toUpperCase().trim(); //device: DISK, WORKSTN
     let keywords = input.substring(44).trim();
 
-    output.value = `Dcl-F ` + name;
+    output.value = `Dcl-F ${name}`;
 
     switch (type) {
-      case `I`:
+      case 'I':
         if (fileadd == 'A')
-          type = `*Input:*Output`;
+          type = '*Input:*Output';
         else
-          type = `*Input`;
+          type = '*Input';
         break;
 
-      case `U`:
-        type = `*Update:*Delete:*Output`;
+      case 'U':
+        type = '*Update:*Delete:*Output';
         break;
 
-      case `O`:
-        if (device != `PRINTER`)
-          type = `*Output`;
+      case 'O':
+        if (device != 'PRINTER')
+          type = '*Output';
         else
-          type = ``;
+          type = '';
         break;
 
-      case `C`:
-        if (device != `WORKSTN`)
-          type = `*INPUT:*OUTPUT`;
+      case 'C':
+        if (device != 'WORKSTN')
+          type = '*INPUT:*OUTPUT';
         else
-          type = ``;
+          type = '';
         break;
 
       default:
-        type = ``;
+        type = '';
         break;
     }
 
-    if (external != `E`) {
-      device = device + `(` + recordLength.trim() + `)`;
+    if (external != 'E') {
+      device = `${device}(${recordLength.trim()})`;
     }
-    if (device != `DISK`) {
-      output.value += ` ` + device;
+    if (device != 'DISK') {
+      output.value += ` ${device}`;
     }
-    if (type != ``) {
-      output.value += ` Usage(` + type + `)`;
+    if (type != '') {
+      output.value += ` Usage(${type})`;
     }
-    if (field == `K`) {
-      output.value += ` Keyed`;
+    if (field == 'K') {
+      output.value += ' Keyed';
     }
-    if (keywords != ``) {
-      if (name == ``) {
+    if (keywords != '') {
+      if (name == '') {
         output.aboveKeywords = keywords;
       } else {
-        output.value += ` ` + keywords;
+        output.value += ` ${keywords}`;
       }
     }
-    if (output.value !== ``) {
+    if (output.value !== '') {
       output.change = true;
-      output.value = output.value.trimRight() + `;`;
+      output.value = `${output.value.trimRight()};`;
     }
     return output;
   }
