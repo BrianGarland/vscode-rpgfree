@@ -1,7 +1,7 @@
 let prevName = '';
 
 export function Parse(input, indent, wasSub) {
-  let output = {
+  const output = {
     remove: false,
     change: false,
     value: '',
@@ -11,7 +11,7 @@ export function Parse(input, indent, wasSub) {
   };
 
   let name = input.substring(7, 23).trim();
-  let keywords = input.substring(44).trim();
+  const keywords = input.substring(44).trim();
 
   input = input.trimRight();
 
