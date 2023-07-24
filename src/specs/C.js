@@ -52,10 +52,10 @@ module.exports = {
       doingCALL = false;
       arrayoutput.push(LastKey + `(` + Lists[LastKey].join(`:`) + `);`);
     }
-    if (doingENTRY && plainOp != `PARM`)
+
+    if (doingENTRY && plainOp != `PARM`) {
       doingENTRY = false;
-
-
+    }
 
     let sqltest1 = input.substr(7, 9).trim().toUpperCase();
     let sqltest2 = input.substr(7, 1).trim().toUpperCase();
@@ -65,35 +65,33 @@ module.exports = {
       output.value = ``.padEnd(7) + input.substr(8).trim();
       fixedSql = true;
       condition.ind = ``;
-
     } else if (sqltest1 == '/END-EXEC') {
       output.value = ``.padEnd(7);
       condition.ind = ``;
-
     } else if (sqltest2 == '+') {
       output.value = ``.padEnd(7) + input.substr(8).trim();
       fixedSql = true;
-
     } else if (levelBreak) {
       // Leave this statement alone
       output.ignore = true;
-
     } else {
       switch (plainOp) {
         case `PLIST`:
         case `KLIST`:
           LastKey = factor1.toUpperCase();
           Lists[LastKey] = [];
-          if (plainOp == `PLIST` && factor1.toUpperCase() == `*ENTRY`)
+          if (plainOp == `PLIST` && factor1.toUpperCase() == `*ENTRY`) {
             doingENTRY = true;
-          else
+          } else {
             output.remove = true;
+          }
           break;
         case `PARM`:
         case `KFLD`:
           //Handle var declaration
-          if (doingENTRY)
+          if (doingENTRY) {
             break;
+          }
           Lists[LastKey].push(result);
           output.remove = true;
           break;
@@ -101,10 +99,11 @@ module.exports = {
           output.value = opcode + ` ` + factor1 + ` ` + factor2;
           break;
         case `ADD`:
-          if (factor1)
+          if (factor1) {
             output.value = result + ` = ` + factor1 + ` + ` + factor2;
-          else
+          } else {
             output.value = result + ` = ` + result + ` + ` + factor2;
+          }
           break;
         case `ADDDUR`:
           // We are adding a duration to a date
@@ -125,10 +124,11 @@ module.exports = {
               period = `%YEARS`;
               break;
           }
-          if (factor1)
+          if (factor1) {
             output.value = result + ` = ` + factor1 + ` + ` + period + `(` + factor2.split(`:`)[0] + `)`;
-          else
+          } else {
             output.value = result + ` += ` + period + `(` + factor2.split(`:`)[0] + `)`;
+          }
           break;
         case `ANDEQ`:
           output.aboveKeywords = `AND ` + factor1 + ` = ` + factor2;
@@ -156,8 +156,9 @@ module.exports = {
           factor2 = factor2.substring(1, factor2.length - 1);
           // result may containe a PLIST name
           if (result != ``) {
-            if (Lists[result.toUpperCase()])
+            if (Lists[result.toUpperCase()]) {
               output.value = factor2 + `(` + Lists[result.toUpperCase()].join(`:`) + `)`;
+            }
           } else {
             output.remove = true;
             LastKey = factor2.toUpperCase();
@@ -177,16 +178,18 @@ module.exports = {
           output.value = result + ` = ` + factor1 + `+ '` + ``.padStart(spaces) + `' + ` + factor2;
           break;
         case `CHAIN`:
-          if (Lists[factor1.toUpperCase()])
+          if (Lists[factor1.toUpperCase()]) {
             output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
-          else
+          } else {
             output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
-
+          }
           // apply indicators
-          if (ind1 != ``)
+          if (ind1 != ``) {
             output.value += `;\n       *in` + ind1 + ' = (%found() = *Off)'
-          if (ind2 != ``)
+          }
+          if (ind2 != ``) {
             output.value += `;\n       *in` + ind1 + ' = %error()'
+          }
           break;
         case `CHECK`:
           output.value = result + ` = %Check(` + factor1 + `:` + factor2 + `)`;
@@ -201,12 +204,13 @@ module.exports = {
           output.value = opcode + ` ` + factor2;
           break;
         case `DELETE`:
-          if (Lists[factor1.toUpperCase()])
+          if (Lists[factor1.toUpperCase()]) {
             output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
-          else if (factor1 != ``)
+          } else if (factor1 != ``) {
             output.value = opcode + ` ` + factor1 + ` ` + factor2;
-          else
+          } else {
             output.value = opcode + ` ` + factor2;
+          }
           break;
         case `DIV`:
           output.value = result + ` = ` + factor1 + ` / ` + factor2;
@@ -420,15 +424,16 @@ module.exports = {
           output.value = opcode;
           output.nextSpaces = indent;
           break;
-        case 'MOVE':
-        case 'MOVEL':
+        case `MOVE`:
+        case `MOVEL`:
           // output.move = {
           //   target: result,
           //   source: factor2,
           //   attr: factor1,
           //   dir: plainOp,
-          //   padded: (extender === 'P')
-          // };
+          //   padded: (extender === `P`)
+          // }
+          output.ignore = true;
           break;
         case `MULT`:
           output.value = result + ` = ` + factor1 + ` * ` + factor2;
@@ -472,25 +477,29 @@ module.exports = {
           output.value = opcode + ` ` + factor2 + ` ` + result;
 
           // process indicators
-          if (ind2 != "")
+          if (ind2 != "") {
             output.value += `;\n       *in` + ind2 + ' = %error()';
-          if (ind3 != "")
+          }
+          if (ind3 != "") {
             output.value += `;\n       *in` + ind3 + ' = %eof()';
+          }
           break;
         case `READE`:
-          if (Lists[factor1.toUpperCase()])
+          if (Lists[factor1.toUpperCase()]) {
             output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
-          else
+          } else {
             output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
+          }
           break;
         case `READP`:
           output.value = opcode + ` ` + factor2 + ` ` + result;
           break;
         case `READPE`:
-          if (Lists[factor1.toUpperCase()])
+          if (Lists[factor1.toUpperCase()]) {
             output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2 + ` ` + result;
-          else
+          } else {
             output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
+          }
           break;
         case `RESET`:
           output.value = opcode + ` ` + factor1 + ` ` + factor2 + ` ` + result;
@@ -507,40 +516,57 @@ module.exports = {
           EndList.push(`Endsl`);
           break;
         case `SETGT`:
-          if (Lists[factor1.toUpperCase()])
+          if (Lists[factor1.toUpperCase()]) {
             output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
-          else
+          } else {
             output.value = opcode + ` ` + factor1 + ` ` + factor2;
-
+          }
           // apply indicators
-          if (ind1 != ``)
+          if (ind1 != ``) {
             output.value += `;\n       *in` + ind1 + ' = (%found() = *Off)'
-          if (ind2 != ``)
+          }
+          if (ind2 != ``) {
             output.value += `;\n       *in` + ind1 + ' = %error()'
+          }
           break;
         case `SETLL`:
-          if (Lists[factor1.toUpperCase()])
+          if (Lists[factor1.toUpperCase()]) {
             output.value = opcode + ` (` + Lists[factor1.toUpperCase()].join(`:`) + `) ` + factor2;
-          else
+          } else {
             output.value = opcode + ` ` + factor1 + ` ` + factor2;
-
+          }
           // apply indicators
-          if (ind1 != ``)
+          if (ind1 != ``) {
             output.value += `;\n       *in` + ind1 + ' = (%found() = *Off)'
-          if (ind2 != ``)
+          }
+          if (ind2 != ``) {
             output.value += `;\n       *in` + ind1 + ' = %error()'
-          if (ind3 != ``)
+          }
+          if (ind3 != ``) {
             output.value += `;\n       *in` + ind1 + ' = %equal()'
+          }
           break;
         case `SETOFF`:
-          if (ind1 != ``) arrayoutput.push(`*In` + ind1 + ` = *Off;`);
-          if (ind2 != ``) arrayoutput.push(`*In` + ind2 + ` = *Off;`);
-          if (ind3 != ``) arrayoutput.push(`*In` + ind3 + ` = *Off;`);
+          if (ind1 != ``) {
+            arrayoutput.push(`*In` + ind1 + ` = *Off;`);
+          }
+          if (ind2 != ``) {
+            arrayoutput.push(`*In` + ind2 + ` = *Off;`);
+          }
+          if (ind3 != ``) {
+            arrayoutput.push(`*In` + ind3 + ` = *Off;`);
+          }
           break;
         case `SETON`:
-          if (ind1 != ``) arrayoutput.push(`*In` + ind1 + ` = *On;`);
-          if (ind2 != ``) arrayoutput.push(`*In` + ind2 + ` = *On;`);
-          if (ind3 != ``) arrayoutput.push(`*In` + ind3 + ` = *On;`);
+          if (ind1 != ``) {
+            arrayoutput.push(`*In` + ind1 + ` = *On;`);
+          }
+          if (ind2 != ``) {
+            arrayoutput.push(`*In` + ind2 + ` = *On;`);
+          }
+          if (ind3 != ``) {
+            arrayoutput.push(`*In` + ind3 + ` = *On;`);
+          }
           break;
         case `SORTA`:
           output.value = opcode + ` ` + extended;
@@ -549,10 +575,11 @@ module.exports = {
           output.value = result + ` = %SQRT(` + factor2 + `)`;
           break;
         case `SUB`:
-          if (factor1)
+          if (factor1) {
             output.value = result + ` = ` + factor1 + ` - ` + factor2;
-          else
+          } else {
             output.value = result + ` = ` + result + ` - ` + factor2;
+          }
           break;
         case `SUBDUR`:
           // If factor2 has a : then it is a duration and we are doing subtacting a duriation from a date
@@ -574,24 +601,26 @@ module.exports = {
                 period = `%YEARS`;
                 break;
             }
-            if (factor1)
+            if (factor1) {
               output.value = result + ` = ` + factor1 + ` - ` + period + `(` + factor2.split(`:`)[0] + `)`;
-            else
+            } else {
               output.value = result + ` -= ` + period + `(` + factor2.split(`:`)[0] + `)`;
-          }
-          // If factor2 doesn't have a duration then we are finding the duration between two dates
-          else
+            }
+          } else {
+            // If factor2 doesn't have a duration then we are finding the duration between two dates
             output.value = result.split(`:`)[0] + ` = %DIFF(` + factor1 + `:` + factor2 + `:` + result.split(`:`)[1] + `)`;
+          }
           break;
         case `SUBST`:
           if (factor2.indexOf(`:`) >= 0) {
             sep = factor2.split(`:`)[1];
             factor2 = factor2.split(`:`)[0].trim();
           }
-          if (factor1.trim().length == 0)
+          if (factor1.trim().length == 0) {
             output.value = result + ` = %Subst(` + factor2 + `:` + sep + `)`;
-          else
+          } else {
             output.value = result + ` = %Subst(` + factor2 + `:` + sep + `:` + factor1 + `)`;
+          }
           break;
         case `TIME`:
           output.value = result + ` = %Time()`;
@@ -673,8 +702,9 @@ module.exports = {
 
     if (output.value !== ``) {
       output.change = true;
-      if (!fixedSql)
+      if (!fixedSql) {
         output.value = output.value.trimEnd() + `;`;
+      }
     }
 
     if (!fixedSql && condition.ind !== `` && output.change) {
