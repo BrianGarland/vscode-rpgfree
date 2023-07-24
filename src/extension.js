@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 
-const RpgleFreeX = require(`./RpgleFree`);
+const RpgleFreeX = require('./RpgleFree');
 
 /**
  * This procedure converts the highlighted text to free form
@@ -43,7 +43,7 @@ function RpgleFree() {
     editBuilder.replace(curRange,lines.join(eol));
   })
 
-  vscode.window.showInformationMessage(`Selected text converted to free format`);
+  vscode.window.showInformationMessage('Selected text converted to free format');
 
   vscode.commands.executeCommand('editor.action.formatDocument');
 
@@ -59,7 +59,7 @@ export function activate(context) {
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
 	context.subscriptions.push(
-		vscode.commands.registerCommand(`vscode-rpgfree.rpgleFree`, function () {
+		vscode.commands.registerCommand('vscode-rpgfree.rpgleFree', function () {
 			RpgleFree();
 		})
 	);
