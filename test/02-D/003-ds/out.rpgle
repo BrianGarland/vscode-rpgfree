@@ -1,7 +1,7 @@
-       Dcl-DS SCREEN;
-         ZSCREN         Char(10)   Pos(83);
-         ZFM            Char(10)   Pos(261);
-         ZCURS          Char(2)    Pos(370);
-         XCURS          Bindec(4)  Pos(370);
-         WENCO          Bindec(4)  Pos(378);
+       Dcl-DS PREFDS  PREFIX(PRFX);
+        End-DS;
+       Dcl-DS MLTLIN;
+         CHRVAR         Char(10)   Pos(83);
+         BINVAR         Bindec(4)  Pos(370);
+         ZNDOVR         Zoned(8:0) overlay(Dtime);
         End-DS;
