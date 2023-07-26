@@ -47,6 +47,7 @@
 		}
 	},
 	"scripts": {
+		"bugs": "node scripts/known-bugs.mjs",
 		"lint": "eslint .",
 		"package": "vsce package",
 		"regen": "node scripts/regen-test.mjs",
