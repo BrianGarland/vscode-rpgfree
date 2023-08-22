@@ -263,6 +263,14 @@ module.exports = class RpgleFree {
             
         } else if (result.isSub === undefined && wasSub) {
           endBlock(this.lines,this.indent);
+
+          // Fixed format RPG does not allow nested DS.
+          //  If the current block is DS and the previous was
+          //  also a DS, then we need to force an end.
+          //  This is required for DS defined with an EXTNAME
+          //  as they may or may not have subfields.
+        } else if (result.blockType === `DS` && wasSub) {
+          endBlock(this.lines,this.indent);
         }
 
         wasLIKEDS = (result.isLIKEDS === true);
@@ -295,6 +303,11 @@ module.exports = class RpgleFree {
           this.lines[index - 1] = this.lines[index - 1].substring(0, endStmti) + ` ` + result.aboveKeywords + endStmt;
           this.lines.splice(index, 1);
           index--;
+
+          // If this is a data structure, we need to ensure the names
+          //  in the EXTNAME and EXTFLD keywords are quoted. We do this
+          //  here after piecing together all of the keyword lines.
+          this.lines[index] = quoteExtNameValue(this.lines[index], result.blockType);
           break;
   
         case result.remove:
@@ -335,6 +348,12 @@ module.exports = class RpgleFree {
           } else {
 
             this.lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
+
+            // If this is a data structure, we need to ensure the names
+            //  in the EXTNAME and EXTFLD keywords are quoted. We do this
+            //  here after piecing together all of the keyword lines.
+            this.lines[index] = quoteExtNameValue(this.lines[index], result.blockType);
+
             if (comment.trim() !== ``) {
               this.lines[index] += ` //` + comment;
             }
@@ -382,6 +401,27 @@ module.exports = class RpgleFree {
       wasSub = false;
     }
 
+    function quoteExtNameValue(line = ``, blockType = ``) {
+      // This only applys to DS block types
+      if (blockType !== 'DS') {
+        return line;
+      }
+
+      // If we cannot find the EXTNAME/EXTFLD with the
+      //  following value in parens, then do nothing.
+      let regexResults = line.match(/^(.* (EXTNAME|EXTFLD)[^\(]*?\()([^\)]+)(\).*)$/i);
+      if (!regexResults || regexResults.length !== 5) {
+        return line;
+      }
+
+      // If the value is already quoted, do nothing.
+      let extNameValue = regexResults[3].trim().toUpperCase();
+      if (extNameValue.substr(0, 1) === `'`) {
+        return line;
+      }
+
+      return (regexResults[1] + `'` + extNameValue + `'` + regexResults[4]);
+    }
   }
   
 }

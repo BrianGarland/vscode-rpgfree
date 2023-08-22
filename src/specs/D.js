@@ -31,10 +31,25 @@ module.exports = {
     let decimals = input.substr(41, 3).trim();
     let field = input.substr(24, 2).trim().toUpperCase();
     let keywords = input.substr(44).trim();
+    let reservedWord = input.substr(26, 14).trim().toUpperCase();
     let doCheck = false;
     let doneCheck = false;
-    let extname = -1;
     let tempkeywords = ``;
+    let isReservedWord = (reservedWord.substr(0, 1) === `*`);
+
+    // If this is a reserved word (e.g., *PROC, *STATUS), force
+    //  the pos and len to empty strings.
+    if (isReservedWord === true) {
+      pos = ``;
+      len = ``;
+    }
+
+    // If this field is a LIKE with a +/- adjustment, force the
+    //  type to an empty string.
+    let isLikeWithAdjustedLength = (len.indexOf(`+`) !== -1 || len.indexOf(`-`) !== -1) && (keywords.toUpperCase().indexOf(`LIKE`) !== -1);
+    if (isLikeWithAdjustedLength) {
+      type = '';
+    }
 
     output.var.standalone = (field === `S`);
     output.var.name = name;
@@ -45,7 +60,7 @@ module.exports = {
       keywords = keywords.substr(0, keywords.length-1);
     }
 
-    if ((type == ``) && output.var.standalone) {
+    if ((type == ``) && output.var.standalone && (!isLikeWithAdjustedLength)) {
       if (decimals == ``)
         output.var.type = `A`; //Character
       else
@@ -215,8 +230,16 @@ module.exports = {
       case ``:
         if (field == `DS` && output.var.len != 0) {
           type = `Len(` + len + `)`;
+        } else if (isReservedWord === true) {
+          type = reservedWord;
         } else if (len != ``) {
-          if (decimals == ``) {
+          // If this is a LIKE field with adjustmented length, insert the
+          //  +/- length into the LIKE keyword.
+          if (isLikeWithAdjustedLength) {
+            let likepos = keywords.toUpperCase().indexOf(`LIKE`);
+            let closebracket = keywords.indexOf(`)`, likepos);
+            keywords = keywords.slice(0,closebracket) + `: ` + len + keywords.slice(closebracket);
+          } else if (decimals == ``) {
             if (keywords.toUpperCase().indexOf(`VARYING`) >= 0) {
               keywords = keywords.replace(/varying/ig, ``);
               type = `Varchar`;
@@ -260,27 +283,6 @@ module.exports = {
         isSubf = (field == `DS`);
         output.isSub = (DSisLIKEDS == false);
         output.isHead = true;
-
-        // if keywords contain 'EXTNAME' add apostrophes around name
-        extname = keywords.toUpperCase().indexOf(`EXTNAME`);
-        if (extname != -1) {
-          tempkeywords = keywords;
-          keywords = ``;
-          output.isSub = true;
-          for (var i = 0; i < tempkeywords.length; i++) {
-            if (i > extname && !doneCheck)
-              doCheck = true; 
-            if (doCheck && tempkeywords.substr(i,1) == `)`) {
-              keywords += `'`;
-              doCheck = false;
-              doneCheck = true;
-            }
-            keywords += tempkeywords.substr(i,1);
-            if (doCheck && tempkeywords.substr(i,1) == `(`)
-              keywords += `'`;
-
-          }  
-        }
 
         output.value = `Dcl-` + field + ` ` + name + ` ` + type + ` ` + keywords;
 
