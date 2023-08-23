@@ -183,6 +183,8 @@ module.exports = class RpgleFree {
     let fixedSql = false;
     let lastBlock = ``;
     let index = 0;
+    let isCommentLine = false;
+
     for (index = 0; index < length; index++) {
       if (this.lines[index] === undefined) continue;
         
@@ -205,6 +207,7 @@ module.exports = class RpgleFree {
         nextline = ``;
   
       spec = line[6].toUpperCase();
+      isCommentLine = (line[7] === `*` || 0 == line.trim().indexOf(`//`));
 
       switch (line[7]) {
       case `/`:
@@ -233,22 +236,26 @@ module.exports = class RpgleFree {
         }
         break;
 
-      case `*`:
-        spec = ``;
-  
-        comment = line.substring(8).trimEnd();
-        if (comment !== ``)
-          this.lines[index] = ``.padEnd(8) + ``.padEnd(spaces) + `//` + comment;
-        else
-          this.lines[index] = ``;
-        break;
-
       case `+`:
         // deal with embedded SQL just like normal c-specs
         if (fixedSql)
           spec = `C`;
         break;
-        
+
+      default:
+        if (isCommentLine) {
+          spec = ``;
+          if (line[7] === `*`) {
+            comment = line.substring(8).trimEnd();
+          } else {
+            comment = line.slice(line.indexOf(`//`) + 2).trimEnd();
+          }
+          if (comment !== ``)
+            this.lines[index] = ``.padEnd(7) + ``.padEnd(spaces) + `//` + comment;
+          else
+            this.lines[index] = ``;
+        }
+        break;        
       }
   
       if (specs[spec] !== undefined) {
@@ -304,10 +311,7 @@ module.exports = class RpgleFree {
           this.lines.splice(index, 1);
           index--;
 
-          // If this is a data structure, we need to ensure the names
-          //  in the EXTNAME and EXTFLD keywords are quoted. We do this
-          //  here after piecing together all of the keyword lines.
-          this.lines[index] = quoteExtNameValue(this.lines[index], result.blockType);
+          this.lines[index] = postProcessKeyWords(this.lines[index], result.blockType);
           break;
   
         case result.remove:
@@ -348,11 +352,7 @@ module.exports = class RpgleFree {
           } else {
 
             this.lines[index] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
-
-            // If this is a data structure, we need to ensure the names
-            //  in the EXTNAME and EXTFLD keywords are quoted. We do this
-            //  here after piecing together all of the keyword lines.
-            this.lines[index] = quoteExtNameValue(this.lines[index], result.blockType);
+            this.lines[index] = postProcessKeyWords(this.lines[index], result.blockType);
 
             if (comment.trim() !== ``) {
               this.lines[index] += ` //` + comment;
@@ -366,19 +366,15 @@ module.exports = class RpgleFree {
         }
   
       } else {
-        if (wasSub && line[7] !== `*`) {
+        if (wasSub && !isCommentLine) {
           endBlock(this.lines,this.indent);
         }
       }
     }
-
-
     
     // catch any held info incase the last line was not a "spec"
     if (result.arrayoutput) {
-  
       this.lines.splice(index, 1);
-
       for (let y in result.arrayoutput) {
         result.arrayoutput[y] = ignoredColumns + `    ` + ``.padEnd(spaces) + result.arrayoutput[y];
 
@@ -386,21 +382,19 @@ module.exports = class RpgleFree {
         index++;
         length++;
       }
-
     }
-  
-
 
     function endBlock(lines,indent) {
       spaces -= indent;
       if (lastBlock !== undefined && lastBlock !== ``) {
-        lines.splice(index, 0, ``.padEnd(8) + ``.padEnd(spaces) + `End-` + lastBlock + `;`);
+        lines.splice(index, 0, ``.padEnd(7) + ``.padEnd(spaces) + `End-` + lastBlock + `;`);
         index++;
         length++;
       }
       wasSub = false;
     }
 
+    /** Quotes the EXTNAME and EXTFLD values */
     function quoteExtNameValue(line = ``, blockType = ``) {
       // This only applys to DS block types
       if (blockType !== 'DS') {
@@ -409,7 +403,7 @@ module.exports = class RpgleFree {
 
       // If we cannot find the EXTNAME/EXTFLD with the
       //  following value in parens, then do nothing.
-      let regexResults = line.match(/^(.* (EXTNAME|EXTFLD)[^\(]*?\()([^\)]+)(\).*)$/i);
+      let regexResults = line.match(/^(.* (EXTNAME|EXTFLD) *?\()([^\)]+)(\).*)$/i);
       if (!regexResults || regexResults.length !== 5) {
         return line;
       }
@@ -422,6 +416,67 @@ module.exports = class RpgleFree {
 
       return (regexResults[1] + `'` + extNameValue + `'` + regexResults[4]);
     }
+
+    /** Fixes the varying keyword by removing it and prepending Var to data type */
+    function fixVaryingKeyword(line = ``, blockType = ``) {
+      // This only applys to DS block types
+      if (blockType !== `DS` && 0 != line.trimLeft().indexOf(`Dcl-S `)) {
+        return line;
+      }
+
+      // The data type must be one of the supported varying
+      //  data types.  Additionally, the VARYING keyword must
+      //  be present.  If both conditions are not met, do nothing.
+      if (!(/\b(Char|Graph|Ucs2)\(.* VARYING( *\( *\d *\))?[ ;]/i.test(line))) {
+        return line;
+      }
+
+      // To simplify the regex, we want to force a trailing semicolon.
+      //  So, we will remove it if it exists, add one on to the end,
+      //   and then when we are all done, put it back (if it was there
+      //   to start with).
+      let semicolon = ``;
+      if (line.substr(-1) === `;`) {
+        line = line.slice(0, -1);
+        semicolon = `;`;
+      }
+
+      // The regex we are using is to break down the line into various
+      //  parts that we can reassemble as we see fit.  This includes:
+      //  $1  = All text before the data type
+      //  $2  = The data type, '(', and length (no trailing ')').
+      //  $5  = Spaces after the ending ')' of the data type
+      //        Up to 3 leading spaces have been removed from
+      //        $5 to account for the added "Var".  If the 
+      //        varying does not have a length specified, this
+      //        will try and preserve the alignment of the keywords.
+      //  $6  = Text after the spaces following the data type up to
+      //        the VARYING keyword.
+      //  $9  = The VARYING length, if specified or undefined
+      //  $10 = Text after the VARYING keyword (and optional length)
+      //        up to, but not including, the ending semicolon. 
+      const results = (line + `;`).match(/^(.*)( (Char|Graph|Ucs2)\(\d+)(\) {0,4})( *?)(.*)(VARYING( *\( *(\d) *\) *)?)(.*);$/i);
+      if (results && results.length >= 10) {
+        line = (results[1] + ` Var` + results[2].trim().toLowerCase() 
+            + (results[9] === undefined ? `` : `:` + results[9])
+            + `) ` + results[5] + results[6]
+            + (results[10] === undefined ? `` : results[10].trim())
+            ).trimRight();
+      }
+      return (line + semicolon);
+    }
+
+    /**
+     * Performs additional processing of keywords after they are combined onto one line
+     *  
+     * Because keywords can be placed on multiple lines and even span multiple
+     *  lines, it is necessary to perform some additional processing of keywords
+     *  once we have merged the multiple lines into a single line.
+     */
+    function postProcessKeyWords(line = ``, blockType = ``) {
+      line = fixVaryingKeyword(line, blockType);
+      line = quoteExtNameValue(line, blockType);
+      return line;
+    }
   }
-  
 }

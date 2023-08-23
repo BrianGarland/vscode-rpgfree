@@ -85,21 +85,14 @@ module.exports = {
       }
     }
 
-
     if ((field == `C`) || (field == `S`)) {
         isSubf = false;
     }
 
-
     if (output.remove === false) {
       switch (type.toUpperCase()) {
       case `A`:
-        if (keywords.toUpperCase().indexOf(`VARYING`) >= 0) {
-          keywords = keywords.replace(/varying/ig, ``);
-          type = `Varchar`;
-        } else {
-          type = `Char`;
-        }
+        type = `Char`;
         type += `(` + len + `)`;
         break;
       case `B`:
@@ -139,12 +132,7 @@ module.exports = {
         type = `Float` + `(` + len + `)`;
         break;
       case `G`:
-        if (keywords.toUpperCase().indexOf(`VARYING`) >= 0) {
-          keywords = keywords.replace(/varying/ig, ``);
-          type = `Vargraph`;
-        } else {
-          type = `Graph`;
-        }
+        type = `Graph`;
         type += `(` + len + `)`;
         break;
       case `I`:
@@ -240,12 +228,7 @@ module.exports = {
             let closebracket = keywords.indexOf(`)`, likepos);
             keywords = keywords.slice(0,closebracket) + `: ` + len + keywords.slice(closebracket);
           } else if (decimals == ``) {
-            if (keywords.toUpperCase().indexOf(`VARYING`) >= 0) {
-              keywords = keywords.replace(/varying/ig, ``);
-              type = `Varchar`;
-            } else {
-              type = `Char`;
-            }
+            type = `Char`;
             type += `(` + len + `)`;
           } else {
             if (isSubf) {
@@ -260,11 +243,17 @@ module.exports = {
 
       switch (field) {
       case `C`:
+        output.blockType = ``;
+        blockType = ``;
         output.value = `Dcl-C ` + name.padEnd(10) + ` ` + keywords;
         break;
+
       case `S`:
+        output.blockType = ``;
+        blockType = ``;
         output.value = `Dcl-S ` + name.padEnd(12) + ` ` + type.padEnd(10) + ` ` + keywords;
         break;
+
       case `DS`:
       case `PR`:
       case `PI`:
@@ -272,7 +261,7 @@ module.exports = {
           keywords = `PSDS ` + keywords;
 
         if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `U`)
-          keywords = `DTAARA(*AUTO) ` + keywords;
+          keywords = `DtaAra(*AUTO) ` + keywords;
 
         let DSisLIKEDS = (keywords.toUpperCase().indexOf(`LIKEDS`) >= 0);
         output.isLIKEDS = DSisLIKEDS;
@@ -292,8 +281,8 @@ module.exports = {
         }
         output.blockType = field;
         blockType = field;
-
         break;
+
       case ``:
         output.isSub = (wasLIKEDS == false);
         if (name == ``) name = `*N`;
@@ -304,9 +293,7 @@ module.exports = {
         } else {
           //(isSubf ? "Dcl-Subf" : "Dcl-Parm")
           output.value = name.padEnd(14) + ` ` + type.padEnd(10) + ` ` + keywords;
-
           output.blockType = blockType;
-
         }
         break;
       }
