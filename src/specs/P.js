@@ -27,7 +27,7 @@ module.exports = {
       switch (input[24].toUpperCase()) {
       case `B`:
         output.value = (`Dcl-Proc ` + name + ` ` + keywords).trimRight();
-        output.nextSpaces = 2;
+        output.nextSpaces = indent;
         break;
       case `E`:
         output.beforeSpaces = -indent;

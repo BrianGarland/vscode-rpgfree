@@ -385,8 +385,8 @@ module.exports = class RpgleFree {
     }
 
     function endBlock(lines,indent) {
-      spaces -= indent;
       if (lastBlock !== undefined && lastBlock !== ``) {
+        spaces -= indent;
         lines.splice(index, 0, ``.padEnd(7) + ``.padEnd(spaces) + `End-` + lastBlock + `;`);
         index++;
         length++;
