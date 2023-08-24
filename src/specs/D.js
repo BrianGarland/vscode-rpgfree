@@ -72,7 +72,6 @@ module.exports = {
       keywords = `Pos(` + pos + `) ` + keywords;
     }
 
-
     if (prevName != ``) {
       name = prevName;
       prevName = ``;

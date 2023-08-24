@@ -362,7 +362,6 @@ module.exports = class RpgleFree {
               
           spaces += result.nextSpaces;
           break;
-
         }
   
       } else {
