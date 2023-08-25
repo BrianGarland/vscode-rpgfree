@@ -62,9 +62,9 @@ module.exports = {
 
     if ((type == ``) && output.var.standalone && (!isLikeWithAdjustedLength)) {
       if (decimals == ``)
-        output.var.type = `A`; //Character
+        output.var.type = `A`; // Character
       else
-        output.var.type = `S`; //Zoned
+        output.var.type = `S`; // Zoned
     }
     
     if (pos != ``) {
