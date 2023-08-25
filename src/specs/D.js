@@ -30,7 +30,7 @@ module.exports = {
     let type = input.substr(40, 1).trim();
     let decimals = input.substr(41, 3).trim();
     let field = input.substr(24, 2).trim().toUpperCase();
-    let keywords = input.substr(44).trim();
+    let keywords = input.substr(44).trimRight();
     let reservedWord = input.substr(26, 14).trim().toUpperCase();
     let doCheck = false;
     let doneCheck = false;
@@ -56,10 +56,6 @@ module.exports = {
     output.var.type = type;
     output.var.len = Number(len);
 
-    if (keywords.endsWith(`+`)) {
-      keywords = keywords.substr(0, keywords.length-1);
-    }
-
     if ((type == ``) && output.var.standalone && (!isLikeWithAdjustedLength)) {
       if (decimals == ``)
         output.var.type = `A`; // Character
@@ -69,7 +65,7 @@ module.exports = {
     
     if (pos != ``) {
       len = String(Number(len) - Number(pos) + 1);
-      keywords = `Pos(` + pos + `) ` + keywords;
+      keywords = `Pos(${pos}) ${keywords.trim()}`;
     }
 
     if (prevName != ``) {
@@ -117,12 +113,13 @@ module.exports = {
           // If a date format was provided we need to remove DATFMT(xxxx) from keywords
           // and add what ever (xxxx) was to type
           let start = keywords.toUpperCase().indexOf(`DATFMT`);
-          let stop =  keywords.toUpperCase().indexOf(`)`);
-          type = `Date` + keywords.substr(start+6,stop-(start+6)+1);
+          let stop =  keywords.toUpperCase().indexOf(`)`, start);
+          type = `Date` + keywords.substr(start + 6, stop - (start + 6) + 1);
           if (start == 0) {
-            keywords = keywords.substr(stop+1).trim();
+            keywords = keywords.substr(stop + 1).trim();
           } else {
-            keywords = keywords.substr(0,start-1).trim() + ` ` +keywords.substr(stop+1).trim();
+            keywords = keywords.substr(0, start - 1).trimRight() +
+               ` ` + keywords.substr(stop + 1).trim();
           }
         } else {
           type = `Date`;
@@ -159,26 +156,27 @@ module.exports = {
       case `P`:
         if (pos != ``) {
           // When using positions packed length is one less than double the bytes
-          type = `Packed` + `(` + String(Number(len)*2-1)  + `:` + decimals + `)`;
+          type = `Packed(${String(Number(len) * 2 - 1)}: ${decimals})`;
         } else {
           // Not using positions, then the length is correct
-          type = `Packed` + `(` + len + `:` + decimals + `)`;
+          type = `Packed(${len}: ${decimals})`;
         }  
         break;
       case `S`:
-        type = `Zoned` + `(` + len + `:` + decimals + `)`;
+        type = `Zoned(${len}: ${decimals})`;
         break;
       case `T`:
         if (keywords.toUpperCase().indexOf(`TIMFMT`) >= 0) {
           // If a date format was provided we need to remove TIMFMT(xxxx) from keywords
           // and add what ever (xxxx) was to type
           let start = keywords.toUpperCase().indexOf(`TIMFMT`);
-          let stop =  keywords.toUpperCase().indexOf(`)`);
-          type = `Time` + keywords.substr(start+6,stop-(start+6)+1);
+          let stop =  keywords.toUpperCase().indexOf(`)`, start);
+          type = `Time` + keywords.substr(start + 6, stop - (start + 6) + 1);
           if (start == 0) {
-            keywords = keywords.substr(stop+1).trim();
+            keywords = keywords.substr(stop + 1).trim();
           } else {
-            keywords = keywords.substr(0,start-1).trim() + ` ` +keywords.substr(stop+1).trim();
+            keywords = keywords.substr(0, start - 1).trimRight() + 
+              ` ` + keywords.substr(stop + 1).trim();
           }
         } else {
           type = `Time`;
@@ -208,8 +206,8 @@ module.exports = {
       case `*`:
         let index = keywords.toUpperCase().indexOf(`PROCPTR`);
         if ( index >= 0) {
-          let removeText = keywords.substr(index,7);
-          keywords = keywords.replace(removeText,``);
+          let removeText = keywords.substr(index, 7);
+          keywords = keywords.replace(removeText, ``);
           type = `Pointer(*PROC)`;
         } else {  
           type = `Pointer`;
@@ -226,15 +224,14 @@ module.exports = {
           if (isLikeWithAdjustedLength) {
             let likepos = keywords.toUpperCase().indexOf(`LIKE`);
             let closebracket = keywords.indexOf(`)`, likepos);
-            keywords = keywords.slice(0,closebracket) + `: ` + len + keywords.slice(closebracket);
+            keywords = keywords.slice(0, closebracket) + `: ` + len + keywords.slice(closebracket);
           } else if (decimals == ``) {
-            type = `Char`;
-            type += `(` + len + `)`;
+            type = `Char(${len})`;
           } else {
             if (isSubf) {
-              type = `Zoned` + `(` + len + `:` + decimals + `)`;
+              type = `Zoned(${len}: ${decimals})`;
             } else {
-              type = `Packed` + `(` + len + `:` + decimals + `)`;
+              type = `Packed${len}: ${decimals})`;
             }
           }
         }
@@ -245,23 +242,23 @@ module.exports = {
       case `C`:
         output.blockType = ``;
         blockType = ``;
-        output.value = `Dcl-C ` + name.padEnd(10) + ` ` + keywords;
+        output.value = `Dcl-C ` + name.padEnd(10) + ` ` + keywords.trim();
         break;
 
       case `S`:
         output.blockType = ``;
         blockType = ``;
-        output.value = `Dcl-S ` + name.padEnd(12) + ` ` + type.padEnd(10) + ` ` + keywords;
+        output.value = `Dcl-S ` + name.padEnd(12) + ` ` + type.padEnd(10) + ` ` + keywords.trim();
         break;
 
       case `DS`:
       case `PR`:
       case `PI`:
         if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `S`)
-          keywords = `PSDS ` + keywords;
+          keywords = `PSDS ` + keywords.trim();
 
         if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `U`)
-          keywords = `DtaAra(*AUTO) ` + keywords;
+          keywords = `DtaAra(*AUTO) ` + keywords.trim();
 
         let DSisLIKEDS = (keywords.toUpperCase().indexOf(`LIKEDS`) >= 0);
         output.isLIKEDS = DSisLIKEDS;
@@ -273,7 +270,7 @@ module.exports = {
         output.isSub = (DSisLIKEDS == false);
         output.isHead = true;
 
-        output.value = `Dcl-` + field + ` ` + name + ` ` + type + ` ` + keywords;
+        output.value = `Dcl-` + field + ` ` + name + ` ` + type + ` ` + keywords.trim();
 
 	      if (DSisLIKEDS == false) {
           output.isSub = true;
@@ -292,7 +289,7 @@ module.exports = {
           output.blockType = blockType;
         } else {
           //(isSubf ? "Dcl-Subf" : "Dcl-Parm")
-          output.value = name.padEnd(14) + ` ` + type.padEnd(10) + ` ` + keywords;
+          output.value = name.padEnd(14) + ` ` + type.padEnd(10) + ` ` + keywords.trim();
           output.blockType = blockType;
         }
         break;
