@@ -98,7 +98,7 @@ module.exports = class RpgleFree {
           sourceVar.len = 26;
           sourceVar.const = true;
           break;
-        }
+      }
     }
 
     if (targetVar === undefined && sourceVar !== undefined) {
@@ -136,7 +136,7 @@ module.exports = class RpgleFree {
 
         case `A`: // character
         case `C`: // ucs2
-          const isMoveLeft = (obj.dir.toUpperCase() === `MOVEL`);
+          const isMoveLeft = obj.dir.toUpperCase() === `MOVEL`;
           if (obj.padded) {
             if (isMoveLeft) {
               assignee = targetVar.name;
@@ -151,11 +151,9 @@ module.exports = class RpgleFree {
                 assignee = `%Subst(${targetVar.name}: 1: %Len(${sourceVar.name}))`;
             } else {
               if (sourceVar.const)
-                assignee = 
-                  `%Subst(${targetVar.name}: %Len(${targetVar.name}) - ${sourceVar.len})`;
+                assignee = `%Subst(${targetVar.name}: %Len(${targetVar.name}) - ${sourceVar.len})`;
               else
-                assignee = 
-                  `%Subst(${targetVar.name}: %Len(${targetVar.name}) - %Len(${sourceVar.name}))`;
+                assignee = `%Subst(${targetVar.name}: %Len(${targetVar.name}) - %Len(${sourceVar.name}))`;
             }
           }
 
@@ -176,7 +174,7 @@ module.exports = class RpgleFree {
             case `D`:
             case `T`:
             case `Z`:
-                if (obj.attr !== ``) {
+              if (obj.attr !== ``) {
                 result.value = `${assignee} = %Char(${sourceVar.name}: ${obj.attr})`;
               } else {
                 result.value = `${assignee} = %Char(${sourceVar.name})`;
@@ -347,12 +345,27 @@ module.exports = class RpgleFree {
           case hasKeywords:
             let endStmti = this.lines[index - 1].indexOf(`;`);
             let endStmt = this.lines[index - 1].substring(endStmti); //Keep those end line comments :D
-
-            this.lines[index - 1] =
-              this.lines[index - 1].substring(0, endStmti) +
-              ` ` +
-              result.aboveKeywords +
-              endStmt;
+            let prevLineLastChar = this.lines[index - 1].substring(endStmti - 1, endStmti);
+            switch (prevLineLastChar) {
+              case `+`:
+                this.lines[index - 1] =
+                  this.lines[index - 1].substring(0, endStmti - 1) +
+                  result.aboveKeywords.trim() +
+                  endStmt;
+                break;
+              case `-`:
+                this.lines[index - 1] =
+                  this.lines[index - 1].substring(0, endStmti - 1) +
+                  result.aboveKeywords.trimRight() +
+                  endStmt;
+                break;
+              default:
+                this.lines[index - 1] =
+                  this.lines[index - 1].substring(0, endStmti) +
+                  ` ` +
+                  result.aboveKeywords.trim() + endStmt;
+                break;
+            }
             this.lines.splice(index, 1);
             index--;
 
@@ -375,7 +388,7 @@ module.exports = class RpgleFree {
 
           case result.change:
             spaces += result.beforeSpaces;
-            // no break, need default logic too
+          // no break, need default logic too
 
           default:
             if (result.arrayoutput) {

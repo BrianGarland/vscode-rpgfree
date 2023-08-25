@@ -25,6 +25,7 @@ module.exports = {
     let extender = ``;
     let factor2 = input.substr(36, 14).trim();
     let extended = input.substr(36).trim();
+    let extendedWithLeadingBlanks = input.substr(36).trimRight();
     let result = input.substr(50, 14).trim();
 
     let ind1 = input.substr(71, 2).trim();
@@ -659,7 +660,8 @@ module.exports = {
       default:
         if (plainOp == ``) {
           if (extended !== ``) {
-            output.aboveKeywords = extended;
+            // ?? output.aboveKeywords = extended;
+            output.aboveKeywords = extendedWithLeadingBlanks;
           } else {
             //Set to blank
             output.change = true;
