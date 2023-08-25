@@ -1,4 +1,5 @@
 # RPG free for Visual Studio Code
+
 Visual Studio Code extension to convert fixed format RPGLE to free format.
 
 This is based on [rpgfreeweb](https://github.com/worksofliam/rpgfreeweb).
@@ -17,11 +18,10 @@ This is based on [rpgfreeweb](https://github.com/worksofliam/rpgfreeweb).
 
 ## How to use
 
-Highlight all or part of your source code and then right-click and use the "Convert to Free Format" option from the menu.
+Highlight all or part of your source code and then right-click and use the "Convert to Free Format" option from the menu.  If no selection was made prior to running "Convert to Free Format", then the entire document will be converted _and_ the `**FREE` will be added as the first line.
 
-A couple of caveats:
-1. Your highlight should start in position 1 of the line or that line will not convert.
-2. Your highlight should end after the end of line for the last line to be converted.
+> **Note**
+> If a selection was made prior to running "Convert to Free Format", the selection will be extended to the start of the first line selected and the end of the last line selected.
 
 ## Contributors
 

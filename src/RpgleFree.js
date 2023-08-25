@@ -375,7 +375,7 @@ module.exports = class RpgleFree {
 
           case result.change:
             spaces += result.beforeSpaces;
-          // no break, need default logic too
+            // no break, need default logic too
 
           default:
             if (result.arrayoutput) {
