@@ -82,6 +82,7 @@ module.exports = {
       if (wasSub) {
       	output.isSub = true;
       }
+      output.blockType = blockType;
     }
 
     if ((field == `C`) || (field == `S`)) {
