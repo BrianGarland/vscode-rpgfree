@@ -2,6 +2,7 @@ let LastKey = ``;
 let Lists = {};
 let doingCALL = false;
 let doingENTRY = false;
+let idTempDoIdx = 0;
 
 let EndList = [];
 
@@ -13,6 +14,7 @@ module.exports = {
       value: ``,
 
       beforeSpaces: 0,
+      incrementReplacement: {name: null, value: null},
       nextSpaces: 0
     };
 
@@ -245,7 +247,7 @@ module.exports = {
             // to map this to a For loop.  The problem is that the
             // "BY increment" is found on the matching "ENDDO".
             // !! As we do not know the matching "ENDDO", this convertion will not work!
-            output.value += `For ${result === "" ? "<result>" : result} = ${factor1 === "" ? 1 : factor1} by <inc-${EndList.length + 1}> to ${factor2 === "" ? 1 : factor2}`;
+            output.value += `For ${result === "" ? getNameForTempDoIdx() : result} = ${factor1 === "" ? 1 : factor1} by <increment-${EndList.length + 1}> to ${factor2 === "" ? 1 : factor2}`;
             endOp = 'Endfor';
           }
           output.nextSpaces = indent;
@@ -338,42 +340,31 @@ module.exports = {
           output.nextSpaces = indent;
           break;
         case `END`:
-          output.value = ``;
-          if (factor2 !== ``) {
-            output.value += `// **NOTE** Replace "<inc-${EndList.length}>" with "${factor2}" in matching FOR above.\n       `;
-          }
-          if (EndList.length > 0) {
-            output.beforeSpaces = -indent;
-            output.value += EndList.pop();
-          } else {
-            output.message = `Operation ${plainOp} will not convert; no matching block found.`;
-          }
-          break;
         case `ENDDO`:
-          output.value = ``;
-          if (factor2 !== ``) {
-            output.value += `// **NOTE** Replace "<inc-${EndList.length}>" with "${factor2}" in matching FOR above.\n       `;
-          }
+          output.incrementReplacement.name = `<increment-${EndList.length}>`;
+          output.incrementReplacement.value = factor2;
           output.beforeSpaces = -indent;
           if (EndList.length > 0) {
-            output.value += EndList.pop();
+            output.value = EndList.pop();
           } else {
-            output.value += opcode;
-          }            
+            output.value = opcode;
+            output.message = `Unmatched ${plainOp}, actual op-code "${opcode}".`;
+          }
           break;
+        case `ENDFOR`:
         case `ENDIF`:
+        case `ENDSL`:
           output.beforeSpaces = -indent;
-          output.value = opcode;
-          EndList.pop();
+          if (EndList.length > 0) {
+            output.value = EndList.pop();
+          } else {
+            output.value = opcode;
+            output.message = `Unmatched ${plainOp}, actual op-code "${opcode}".`;
+          }
           break;
         case `ENDMON`:
           output.beforeSpaces = -indent;
           output.value = opcode;
-          break;
-        case `ENDSL`:
-          output.beforeSpaces = -(indent * 2);
-          output.value = opcode;
-          EndList.pop();
           break;
         case `ENDSR`:
           output.beforeSpaces = -indent;
@@ -409,6 +400,7 @@ module.exports = {
         case `FOR`:
           output.value = `${opcode} ${extended}`;
           output.nextSpaces = indent;
+          EndList.push(`Endfor`);
           break;
         case `IF`:
           output.value = `${opcode} ${extended}`;
@@ -756,5 +748,9 @@ module.exports = {
       output.arrayoutput = arrayoutput;
     }
     return output;
+
+    function getNameForTempDoIdx() {
+      return `rpg_free_temporary_do_index_${++idTempDoIdx}`;
+    }
   }
 }
