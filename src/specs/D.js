@@ -32,9 +32,6 @@ module.exports = {
     let field = input.substr(24, 2).trim().toUpperCase();
     let keywords = input.substr(44).trimRight();
     let reservedWord = input.substr(26, 14).trim().toUpperCase();
-    let doCheck = false;
-    let doneCheck = false;
-    let tempkeywords = ``;
     let isReservedWord = (reservedWord.substr(0, 1) === `*`);
 
     // If this is a reserved word (e.g., *PROC, *STATUS), force
@@ -57,10 +54,11 @@ module.exports = {
     output.var.len = Number(len);
 
     if ((type == ``) && output.var.standalone && (!isLikeWithAdjustedLength)) {
-      if (decimals == ``)
+      if (decimals == ``) {
         output.var.type = `A`; // Character
-      else
+      } else {
         output.var.type = `S`; // Zoned
+      }
     }
     
     if (pos != ``) {
@@ -76,7 +74,7 @@ module.exports = {
       prevName = potentialName.substr(0, potentialName.length - 3);
       output.remove = true;
       if (wasSub) {
-      	output.isSub = true;
+        output.isSub = true;
       }
       output.blockType = blockType;
     }
@@ -204,6 +202,7 @@ module.exports = {
         type = `Timestamp`;
         break;
       case `*`:
+      {
         let index = keywords.toUpperCase().indexOf(`PROCPTR`);
         if ( index >= 0) {
           let removeText = keywords.substr(index, 7);
@@ -213,6 +212,7 @@ module.exports = {
           type = `Pointer`;
         }
         break;
+      }
       case ``:
         if (field == `DS` && output.var.len != 0) {
           type = `Len(` + len + `)`;
@@ -254,17 +254,21 @@ module.exports = {
       case `DS`:
       case `PR`:
       case `PI`:
-        if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `S`)
+      {
+        if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `S`) {
           keywords = `PSDS ` + keywords.trim();
+        }
 
-        if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `U`)
+        if (field == `DS` && input.substr(23, 1).trim().toUpperCase() == `U`) {
           keywords = `DtaAra(*AUTO) ` + keywords.trim();
+        }
 
         let DSisLIKEDS = (keywords.toUpperCase().indexOf(`LIKEDS`) >= 0);
         output.isLIKEDS = DSisLIKEDS;
 
-        if (name == ``) 
-          name = `*N`;
+        if (name == ``) {
+name = `*N`;
+}
 
         isSubf = (field == `DS`);
         output.isSub = (DSisLIKEDS == false);
@@ -272,17 +276,20 @@ module.exports = {
 
         output.value = `Dcl-` + field + ` ` + name + ` ` + type + ` ` + keywords.trim();
 
-	      if (DSisLIKEDS == false) {
+        if (DSisLIKEDS == false) {
           output.isSub = true;
           output.nextSpaces = indent;
         }
         output.blockType = field;
         blockType = field;
         break;
+      }
 
       case ``:
         output.isSub = (wasLIKEDS == false);
-        if (name == ``) name = `*N`;
+        if (name == ``) {
+          name = `*N`;
+        }
         if (name == `*N` && type == ``) {
           output.aboveKeywords = keywords;
           output.remove = true;

@@ -20,6 +20,7 @@ module.exports = class RpgleFree {
     this.currentLine = -1;
     this.lines = lines;
     this.indent = indent;
+    this.maxLineLength = 100;
     this.vars = {
       "*DATE": {
         name: `*DATE`,
@@ -32,7 +33,9 @@ module.exports = class RpgleFree {
   }
 
   addVar(obj) {
-    if (obj.standalone === true) this.vars[obj.name.toUpperCase()] = obj;
+    if (obj.standalone === true) {
+      this.vars[obj.name.toUpperCase()] = obj;
+    }
   }
 
   suggestMove(obj) {
@@ -127,15 +130,17 @@ module.exports = class RpgleFree {
           if (sourceVar.name.toUpperCase() === `*DATE`) {
             result.value = `${targetVar.name} = ${sourceVar.name}`;
           } else {
-            if (obj.attr === ``)
+            if (obj.attr === ``) {
               result.value = `${targetVar.name} = %Date(${sourceVar.name})`;
-            else
+            } else {
               result.value = `${targetVar.name} = %Date(${sourceVar.name}: ${obj.attr})`;
+            }
           }
           break;
 
         case `A`: // character
         case `C`: // ucs2
+        {
           const isMoveLeft = obj.dir.toUpperCase() === `MOVEL`;
           if (obj.padded) {
             if (isMoveLeft) {
@@ -145,15 +150,17 @@ module.exports = class RpgleFree {
             }
           } else {
             if (isMoveLeft) {
-              if (sourceVar.const)
+              if (sourceVar.const) {
                 assignee = `%Subst(${targetVar.name}: 1: ${sourceVar.len})`;
-              else
+              } else {
                 assignee = `%Subst(${targetVar.name}: 1: %Len(${sourceVar.name}))`;
+              }
             } else {
-              if (sourceVar.const)
+              if (sourceVar.const) {
                 assignee = `%Subst(${targetVar.name}: %Len(${targetVar.name}) - ${sourceVar.len})`;
-              else
+              } else {
                 assignee = `%Subst(${targetVar.name}: %Len(${targetVar.name}) - %Len(${sourceVar.name}))`;
+              }
             }
           }
 
@@ -181,6 +188,7 @@ module.exports = class RpgleFree {
               }
           }
           break;
+        }
       }
     }
 
@@ -203,9 +211,10 @@ module.exports = class RpgleFree {
       isMove,
       hasKeywords,
       ignoredColumns,
-      spec,
-      spaces = 0;
-    let result, testForEnd;
+      result,
+      spec;
+
+    let spaces = 0;
     let wasSub = false;
     let wasLIKEDS = false;
     let fixedSql = false;
@@ -215,23 +224,25 @@ module.exports = class RpgleFree {
 
     length = this.lines.length;
     for (index = 0; index < length; index++) {
-      if (this.lines[index] === undefined) continue;
+      if (this.lines[index] === undefined) {
+      continue;
+      }
 
       this.currentLine = index;
 
       comment = ``;
-      line = ` ` + this.lines[index].padEnd(80);
-      if (line.length > 81) {
-        line = line.substring(0, 81);
-        comment = this.lines[index].substring(80);
+      line = ` ` + this.lines[index].padEnd(this.maxLineLength);
+      if (line.length > (this.maxLineLength + 1)) {
+        line = line.substring(0, (this.maxLineLength + 1));
+        comment = this.lines[index].substring(this.maxLineLength);
       }
 
       ignoredColumns = line.substring(1, 4);
 
       if (this.lines[index + 1]) {
-        nextline = ` ` + this.lines[index + 1].padEnd(80);
-        if (nextline.length > 81) {
-          nextline = nextline.substring(0, 81);
+        nextline = ` ` + this.lines[index + 1].padEnd(this.maxLineLength);
+        if (nextline.length > (this.maxLineLength + 1)) {
+          nextline = nextline.substring(0, (this.maxLineLength + 1));
         }
       } else {
         nextline = ``;
@@ -264,6 +275,7 @@ module.exports = class RpgleFree {
       } else {
         switch (line[7]) {
           case `/`:
+          {
             let test = line.substring(8, 16).trim().toUpperCase();
             switch (test) {
               case `EXEC SQL`:
@@ -282,7 +294,6 @@ module.exports = class RpgleFree {
                 this.lines.splice(index, 1);
                 index--;
                 continue;
-                break;
               default:
                 spec = ``;
                 this.lines[index] =
@@ -290,10 +301,13 @@ module.exports = class RpgleFree {
                 break;
             }
             break;
+          }
 
           case `+`:
             // deal with embedded SQL just like normal c-specs
-            if (fixedSql) spec = `C`;
+            if (fixedSql) {
+              spec = `C`;
+            }
             break;
         }
       }
@@ -321,13 +335,43 @@ module.exports = class RpgleFree {
 
         wasLIKEDS = result.isLIKEDS === true;
 
-        if (result.var !== undefined) this.addVar(result.var);
+        if (result.var !== undefined) {
+          this.addVar(result.var);
+        }
 
         isMove = result.move !== undefined;
         hasKeywords = result.aboveKeywords !== undefined;
 
         if (result.message) {
           this.messages.push(new Message(this.currentLine, result.message));
+        }
+
+        // If an increment replacement value has been returned, we need
+        //  to look back through the code to see if we can find the
+        //  named increment and replace it with the value returned.
+        if (result.incrementReplacement !== undefined && null !== result.incrementReplacement.name) {
+          const matchToken = new RegExp(`(For .*?)( by ${result.incrementReplacement.name})`);
+          let replaced = false;
+          for (let idx = this.currentLine - 1; idx >= 0; idx--) {
+            if (this.lines[idx].match(matchToken)) {
+              if ("" === result.incrementReplacement.value || "1" === result.incrementReplacement.value) {
+                this.lines[idx] = this.lines[idx].replace(matchToken, `$1`);
+              } else {
+                this.lines[idx] = this.lines[idx].replace(matchToken, `$1 by ${result.incrementReplacement.value}`);
+                // If the increment value is negative, we need to switch the "For ... _to_ " to "For ... _downto_ ".
+                // **CAUTION**: If the increment value is a variable, we have no idea if the value is going to
+                //  be positive or negative.  As such, the DO/ENDDO converstion to FOR/ENDFOR may not work.
+                if (result.incrementReplacement.value.charAt(0) === `-`) {
+                  this.lines[idx] = this.lines[idx].replace(new RegExp(`(For .* by ${result.incrementReplacement.value})( to )`), `$1 downto `);
+                }
+              }
+              replaced = true;
+              break;
+            }
+            if (!replaced) {
+              this.messages.push(new Message(this.currentLine, `Unabled to find matching FOR for END/ENDDO; increment "${result.incrementReplacement.name}" with value "${result.incrementReplacement.value}" not set.`));    
+            }
+          }
         }
 
         switch (true) {
@@ -343,6 +387,7 @@ module.exports = class RpgleFree {
             break;
 
           case hasKeywords:
+          {
             let endStmti = this.lines[index - 1].indexOf(`;`);
             let endStmt = this.lines[index - 1].substring(endStmti); //Keep those end line comments :D
             let prevLineLastChar = this.lines[index - 1].substring(endStmti - 1, endStmti);
@@ -374,6 +419,7 @@ module.exports = class RpgleFree {
               result.blockType
             );
             break;
+          }
 
           case result.remove:
             if (comment.trim() !== ``) {
@@ -388,8 +434,7 @@ module.exports = class RpgleFree {
 
           case result.change:
             spaces += result.beforeSpaces;
-          // no break, need default logic too
-
+            // no break, need to fall through to default logic
           default:
             if (result.arrayoutput) {
               this.lines.splice(index, 1);
@@ -472,7 +517,7 @@ module.exports = class RpgleFree {
       // If we cannot find the EXTNAME/EXTFLD with the
       //  following value in parens, then do nothing.
       let regexResults = line.match(
-        /^(.* (EXTNAME|EXTFLD) *?\()([^\)]+)(\).*)$/i
+        /^(.* (EXTNAME|EXTFLD) *?\()([^)]+)(\).*)$/i
       );
       if (!regexResults || regexResults.length !== 5) {
         return line;
