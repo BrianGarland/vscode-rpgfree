@@ -186,7 +186,7 @@ module.exports = class RpgleFree {
 
     if (result.value !== ``) {
       result.change = true;
-      result.value = result.value.trimRight() + `;`;
+      result.value = result.value + `;`;
     } else {
       this.messages.push(
         new Message(this.currentLine, `Unable to convert MOVE/MOVEL operation.`)
