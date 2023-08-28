@@ -534,8 +534,8 @@ module.exports = class RpgleFree {
 
     /** Fixes the varying keyword by removing it and prepending Var to data type */
     function fixVaryingKeyword(line = ``, blockType = ``) {
-      // This only applys to DS block types
-      if (blockType !== `DS` && 0 != line.trimLeft().indexOf(`Dcl-S `)) {
+      // This only applys to DS, PR, and PI block types
+      if ( !(/^(DS|PR|PI)$/.test(blockType)) && 0 != line.trimLeft().indexOf(`Dcl-S `)) {
         return line;
       }
 
