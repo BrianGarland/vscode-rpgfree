@@ -14,13 +14,12 @@ function RpgleFree() {
   const editor = vscode.window.activeTextEditor;
   const eol = editor.document.eol === 1 ? `\n` : `\r\n`;
 
-  // Start with the indent value being a constant
-  // We'll add a configuration setting for this in the future
-  const indent = 2;
+  const configuration = vscode.workspace.getConfiguration(`vscode-rpgfree`);
 
   let curRange;
   let text = ``;
 
+  
   // Get the selected text from the editor.
   // If nothing is selected, convert the whole document,
   // adding the **FREE as the first line.
@@ -46,7 +45,7 @@ function RpgleFree() {
   lines.push(``);
 
   // Convert the array of lines to free format
-  let conv = new RpgleFreeX(lines, indent);
+  let conv = new RpgleFreeX(lines,  configuration.get(`indent`),  configuration.get(`maximumLineLength`));
   conv.parse();
 
   // As we added an empty line to the array of

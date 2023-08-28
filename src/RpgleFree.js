@@ -16,11 +16,11 @@ class Message {
 }
 
 module.exports = class RpgleFree {
-  constructor(lines = [], indent = 2) {
+  constructor(lines = [], indent = 2, maxLineLength = 100) {
     this.currentLine = -1;
     this.lines = lines;
     this.indent = indent;
-    this.maxLineLength = 100;
+    this.maxLineLength = maxLineLength;
     this.vars = {
       "*DATE": {
         name: `*DATE`,

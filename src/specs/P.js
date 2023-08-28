@@ -1,7 +1,6 @@
 let prevName = ``;
 
 module.exports = {
-
   Parse: function (input, indent, wasSub) {
     let output = {
       remove: false,
@@ -17,7 +16,7 @@ module.exports = {
 
     input = input.trimRight();
 
-    if (prevName != ``) {
+    if (prevName !== ``) {
       name = prevName;
       prevName = ``;
     }
@@ -26,14 +25,14 @@ module.exports = {
       output.remove = true;
     } else {
       switch (input[24].toUpperCase()) {
-      case `B`:
-        output.value = (`Dcl-Proc ` + name + ` ` + keywords).trimRight();
-        output.nextSpaces = indent;
-        break;
-      case `E`:
-        output.beforeSpaces = -indent;
-        output.value = `End-Proc`;
-        break;
+        case `B`:
+          output.value = (`Dcl-Proc ${name} ${keywords}`).trimRight();
+          output.nextSpaces = indent;
+          break;
+        case `E`:
+          output.beforeSpaces = -indent;
+          output.value = `End-Proc`;
+          break;
       }
     }
 
