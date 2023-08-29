@@ -514,22 +514,31 @@ module.exports = class RpgleFree {
         return line;
       }
 
-      // If we cannot find the EXTNAME/EXTFLD with the
-      //  following value in parens, then do nothing.
-      let regexResults = line.match(
-        /^(.* (EXTNAME|EXTFLD) *?\()([^)]+)(\).*)$/i
-      );
-      if (!regexResults || regexResults.length !== 5) {
+      // If we cannot find the EXTNAME/EXTFLD with an
+      //  value enclosed in parens, then do nothing.
+      const keywordParts = line.match(/^(.* (EXTNAME|EXTFLD) *?\()([^)]+)(\).*)$/i);
+      if (!keywordParts || keywordParts.length !== 5) {
         return line;
       }
 
       // If the value is already quoted, do nothing.
-      let extNameValue = regexResults[3].trim().toUpperCase();
-      if (extNameValue.substr(0, 1) === `'`) {
+      const extValue = keywordParts[3].trim();
+      if (extValue.substring(0, 1) === `'`) {
         return line;
       }
 
-      return regexResults[1] + `'` + extNameValue + `'` + regexResults[4];
+      // The EXTNAME supports the extname(file-name {: fromat-name} {*ALL|*INPUT|*OUTPUT|*KEY|*NULL})
+      // We can only quote the file-name; all other parts are to remain unquoted.
+      let extOptions = ``, extName = extValue.toUpperCase();
+      const extValueParts = extValue.split(/^([^:]+?)(:.*)$/);
+      if (extValueParts.length >= 2) {
+        extName = extValueParts[1].trim().toUpperCase();
+        // Force consistent spacing around the colon separator
+        //  (that is no leading spaces, and 1 space after).
+        extOptions = extValueParts[2].trim().replace(/ {0,}: {0,}\*/g, `: \*`).replace(/^:( *)(.*?)( *)(:.*)$/g, `: $2 $4`);
+      }
+
+      return `${keywordParts[1]}'${extName}'${extOptions}${keywordParts[4]}`;
     }
 
     /** Fixes the varying keyword by removing it and prepending Var to data type */
