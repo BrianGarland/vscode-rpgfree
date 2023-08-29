@@ -22,7 +22,7 @@ function RpgleFree() {
   
   // Get the selected text from the editor.
   // If nothing is selected, convert the whole document,
-  // adding the **FREE as the first line.
+  // adding the **FREE as the first line, if needed.
   if (editor.selection && !editor.selection.isEmpty) {
     curRange = new vscode.Range(editor.selection.start.line, 0, editor.selection.end.line + 1, 0);
     text = editor.document.getText(curRange);
@@ -32,7 +32,10 @@ function RpgleFree() {
     curRange = new vscode.Range(
       editor.document.lineAt(0).range.start,
       editor.document.lineAt(editor.document.lineCount - 1).range.end);
-    text = `**FREE${eol}${editor.document.getText()}`;
+    text = editor.document.getText();
+    if (! /^\*\*FREE/i.test(text) ) {
+      text = `**FREE${eol}` + text;
+    }
   }
 
   // Break the soure lines into an array
@@ -45,7 +48,7 @@ function RpgleFree() {
   lines.push(``);
 
   // Convert the array of lines to free format
-  let conv = new RpgleFreeX(lines,  configuration.get(`indent`),  configuration.get(`maximumLineLength`));
+  let conv = new RpgleFreeX(lines,  configuration.get(`indent`));
   conv.parse();
 
   // As we added an empty line to the array of

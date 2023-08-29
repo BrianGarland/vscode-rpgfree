@@ -16,11 +16,11 @@ class Message {
 }
 
 module.exports = class RpgleFree {
-  constructor(lines = [], indent = 2, maxLineLength = 100) {
+  constructor(lines = [], indent = 2) {
     this.currentLine = -1;
     this.lines = lines;
     this.indent = indent;
-    this.maxLineLength = maxLineLength;
+    this.maxFixedFormatLineLength = 80;
     this.vars = {
       "*DATE": {
         name: `*DATE`,
@@ -211,9 +211,9 @@ module.exports = class RpgleFree {
       isMove,
       hasKeywords,
       ignoredColumns,
-      result,
       spec;
 
+    let result = {};
     let spaces = 0;
     let wasSub = false;
     let wasLIKEDS = false;
@@ -221,35 +221,46 @@ module.exports = class RpgleFree {
     let lastBlock = ``;
     let index = 0;
     let isCommentLine = false;
+    let compileTimeTableLines = false;
 
     length = this.lines.length;
     for (index = 0; index < length; index++) {
       if (this.lines[index] === undefined) {
-      continue;
+        continue;
       }
 
       this.currentLine = index;
-
+      line = ` ` + this.lines[index].padEnd(this.maxFixedFormatLineLength);
       comment = ``;
-      line = ` ` + this.lines[index].padEnd(this.maxLineLength);
-      if (line.length > (this.maxLineLength + 1)) {
-        line = line.substring(0, (this.maxLineLength + 1));
-        comment = this.lines[index].substring(this.maxLineLength);
+      if (line.length > (this.maxFixedFormatLineLength + 1)) {
+        line = line.substring(0, (this.maxFixedFormatLineLength + 1));
+        comment = this.lines[index].substring(this.maxFixedFormatLineLength);
       }
 
-      ignoredColumns = line.substring(1, 4);
+      ignoredColumns = line.substring(1, 6) + `  `;
+      spec = line[6].toUpperCase();
+      isCommentLine = line[7] === `*` || 0 == line.trim().indexOf(`//`);
 
       if (this.lines[index + 1]) {
-        nextline = ` ` + this.lines[index + 1].padEnd(this.maxLineLength);
-        if (nextline.length > (this.maxLineLength + 1)) {
-          nextline = nextline.substring(0, (this.maxLineLength + 1));
+        nextline = ` ` + this.lines[index + 1].padEnd(this.maxFixedFormatLineLength);
+        if (nextline.length > (this.maxFixedFormatLineLength + 1)) {
+          nextline = nextline.substring(0, (this.maxFixedFormatLineLength + 1));
         }
       } else {
         nextline = ``;
       }
 
-      spec = line[6].toUpperCase();
-      isCommentLine = line[7] === `*` || 0 == line.trim().indexOf(`//`);
+      // If this is the start of compile-time arrays, fall through so we can
+      //  flush any cached end block(s).  However, on the next line we simply
+      //  want to stop parse and leave all compile-time source as-is.
+      if (0 < index && line.startsWith(` **`)) {
+        compileTimeTableLines = true;
+        spec = ``;
+        isCommentLine = false;
+      } else if (compileTimeTableLines) {
+        break;
+      }
+
       if (isCommentLine) {
         spec = ``;
         // For ILEDocs, the start comment block `/**` should
@@ -271,7 +282,7 @@ module.exports = class RpgleFree {
         // However, in order to get to this point, the line was not
         // blank, but was literally commented.  So, keep the "comment"
         // even if it is blank.
-        this.lines[index] = ``.padEnd(7) + ``.padEnd(spaces) + `//` + comment;
+        this.lines[index] = `${"".padEnd(7)}${"".padEnd(spaces)}// ${comment}`;
       } else {
         switch (line[7]) {
           case `/`:
@@ -381,8 +392,7 @@ module.exports = class RpgleFree {
           case isMove:
             result = this.suggestMove(result.move);
             if (result.change) {
-              this.lines[index] =
-                ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
+              this.lines[index] = `${ignoredColumns}${"".padEnd(spaces)}${result.value}`;
             }
             break;
 
@@ -423,8 +433,7 @@ module.exports = class RpgleFree {
 
           case result.remove:
             if (comment.trim() !== ``) {
-              this.lines[index] =
-                ignoredColumns + `    ` + ``.padEnd(spaces) + `//` + comment;
+              this.lines[index] =`${ignoredColumns}${"".padEnd(spaces)}// ${comment}`;
             } else {
               this.lines.splice(index, 1);
               index--;
@@ -440,15 +449,8 @@ module.exports = class RpgleFree {
               this.lines.splice(index, 1);
 
               for (let y in result.arrayoutput) {
-                result.arrayoutput[y] =
-                  ignoredColumns +
-                  `    ` +
-                  ``.padEnd(spaces) +
-                  result.arrayoutput[y];
-
+                result.arrayoutput[y] = `${ignoredColumns}${"".padEnd(spaces)}${result.arrayoutput[y]}`;
                 this.lines.splice(index, 0, result.arrayoutput[y]);
-                //result.arrayoutput.pop();
-
                 index++;
                 length++;
               }
@@ -458,15 +460,14 @@ module.exports = class RpgleFree {
 
               index--;
             } else {
-              this.lines[index] =
-                ignoredColumns + `    ` + ``.padEnd(spaces) + result.value;
+              this.lines[index] = `${ignoredColumns}${"".padEnd(spaces)}${result.value}`;
               this.lines[index] = postProcessKeyWords(
                 this.lines[index],
                 result.blockType
               );
 
               if (comment.trim() !== ``) {
-                this.lines[index] += ` //` + comment;
+                this.lines[index] += ` // ${comment}`;
               }
             }
 
@@ -484,9 +485,7 @@ module.exports = class RpgleFree {
     if (result.arrayoutput) {
       this.lines.splice(index, 1);
       for (let y in result.arrayoutput) {
-        result.arrayoutput[y] =
-          ignoredColumns + `    ` + ``.padEnd(spaces) + result.arrayoutput[y];
-
+        result.arrayoutput[y] = `${ignoredColumns}${"".padEnd(spaces)}${result.arrayoutput[y]}`;
         this.lines.splice(index, 0, result.arrayoutput[y]);
         index++;
         length++;
@@ -496,10 +495,7 @@ module.exports = class RpgleFree {
     function endBlock(lines, indent) {
       if (lastBlock !== undefined && lastBlock !== ``) {
         spaces -= indent;
-        lines.splice(
-          index,
-          0,
-          ``.padEnd(7) + ``.padEnd(spaces) + `End-` + lastBlock + `;`
+        lines.splice(index, 0, `${"".padEnd(7)}${"".padEnd(spaces)}End-${lastBlock};`
         );
         index++;
         length++;
