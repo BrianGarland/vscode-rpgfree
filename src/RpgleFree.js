@@ -282,7 +282,7 @@ module.exports = class RpgleFree {
         // However, in order to get to this point, the line was not
         // blank, but was literally commented.  So, keep the "comment"
         // even if it is blank.
-        this.lines[index] = `${"".padEnd(7)}${"".padEnd(spaces)}// ${comment}`;
+        this.lines[index] = `${"".padEnd(7)}${"".padEnd(spaces)}//${comment}`;
       } else {
         switch (line[7]) {
           case `/`:
@@ -433,7 +433,7 @@ module.exports = class RpgleFree {
 
           case result.remove:
             if (comment.trim() !== ``) {
-              this.lines[index] =`${ignoredColumns}${"".padEnd(spaces)}// ${comment}`;
+              this.lines[index] =`${ignoredColumns}${"".padEnd(spaces)}//${comment}`;
             } else {
               this.lines.splice(index, 1);
               index--;
@@ -467,7 +467,7 @@ module.exports = class RpgleFree {
               );
 
               if (comment.trim() !== ``) {
-                this.lines[index] += ` // ${comment}`;
+                this.lines[index] += ` //${comment}`;
               }
             }
 
