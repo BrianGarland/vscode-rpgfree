@@ -1,3 +1,5 @@
+const { lookup } = require("dns");
+
 let LastKey = ``;
 let Lists = {};
 let doingCALL = false;
@@ -99,11 +101,8 @@ module.exports = {
           output.value = `${opcode} ${factor1} ${factor2}`;
           break;
         case `ADD`:
-          if (factor1) {
-            output.value = `${result} = ${factor1} + ${factor2}`;
-          } else {
-            output.value = `${result} = ${result} + ${factor2}`;
-          }
+          arrayoutput.push(`${result} = ${factor1 === "" ? result : factor1} + ${factor2};`);
+          addMathResultIndicators(arrayoutput, result, ind1, ind2, ind3);
           break;
         case `ADDDUR`:
           // We are adding a duration to a date or time
@@ -197,14 +196,23 @@ module.exports = {
           break;
         case `CHAIN`:
           if (Lists[factor1.toUpperCase()]) {
-            output.value = `${opcode} (${Lists[factor1.toUpperCase()].join(":")}) ${factor2} ${result}`;
+            arrayoutput.push(`${opcode} (${Lists[factor1.toUpperCase()].join(":")}) ${factor2} ${result}`.trimEnd() + `;`);
           } else {
-            output.value = `${opcode} ${factor1} ${factor2} ${result}`;
+            arrayoutput.push(`${opcode} ${factor1} ${factor2} ${result}`.trimEnd() + `;`);
           }
 
-          // apply indicators
-          if (ind1 !== ``) output.value += `;\n       *in${ind1} = (not %Found())`;
-          if (ind2 !== ``) output.value += `;\n       *in${ind2} = %Error()`;
+          if (ind1 !== ``) {
+            if (ind1 !== ind2) {
+              arrayoutput.push(`*in${ind1} = (not %Found());`);
+            } else {
+              arrayoutput.push(`*in${ind1} = (not %Found()) or %Error();`);
+            }
+          }
+          if (ind2 !== ``) {
+            if (ind2 !== ind1) {
+              arrayoutput.push(`*in${ind2} = %Error();`);
+            }
+          }
           break;
         case `CHECK`:
           output.value = `${result} = %Check(${factor1}: ${factor2})`;
@@ -218,6 +226,36 @@ module.exports = {
         case `CLOSE`:
           output.value = `${opcode} ${factor2}`;
           break;
+        case `COMP`:
+        {
+          if (ind1 !== ``) {
+            arrayoutput.push(`*in${ind1} = *OFF;`);
+          }
+          if (ind2 !== ``) {
+            arrayoutput.push(`*in${ind2} = *OFF;`);
+          }
+          if (ind3 !== ``) {
+            arrayoutput.push(`*in${ind3} = *OFF;`);
+          }
+          let ifElseIf = `If`;
+          if (ind3 !== ``) {
+            arrayoutput.push(`${ifElseIf} ${factor1} = ${factor2};`);
+            arrayoutput.push("".padStart(indent) + `*in${ind3} = *ON;`);
+            ifElseIf = `Elseif`;
+          }
+          if (ind1 !== ``) {
+            arrayoutput.push(`${ifElseIf} ${factor1} > ${factor2};`);
+            arrayoutput.push("".padStart(indent) + `*in${ind1} = *ON;`);
+            ifElseIf = `ElseIf`;
+          }
+          if (ind2 !== ``) {
+            arrayoutput.push(`${ifElseIf} ${factor1} < ${factor2};`);
+            arrayoutput.push("".padStart(indent) + `*in${ind2} = *ON;`);
+            ifElseIf = `ElseIf`;
+          }
+          arrayoutput.push(`Endif;`);
+          break;
+        }
         case `DELETE`:
           if (Lists[factor1.toUpperCase()]) {
             output.value = `${opcode} (${Lists[factor1.toUpperCase()].join(":")}) ${factor2}`;
@@ -228,31 +266,32 @@ module.exports = {
           }
           break;
         case `DIV`:
-          output.value = `${result} = ${factor1} / ${factor2}`;
+          arrayoutput.push(`${result} = ${factor1 === "" ? result : factor1} / ${factor2};`);
+          addMathResultIndicators(arrayoutput, result, ind1, ind2, ind3);
           break;
         case `DO`:
           output.value = ``;
           let endOp = '';
+          let doIndent = 0;
           if (condition.ind !== ``) {
-            output.value =
-              `If${condition.not ? " not" : ""} *in${condition.ind.toUpperCase()}` +
-              `;\n       ${" ".repeat(indent)}`;
+            arrayoutput.push(`If${condition.not ? " not" : ""} *in${condition.ind.toUpperCase()};`);
+            doIndent += indent;
           }
           // If no start, limit, nor index specified, this is a do-once loop.
           if (result === `` && factor1 === `` && factor2 === ``) {
-            output.value += `Dou 1 = 1`;
+            arrayoutput.push(" ".repeat(doIndent) + `Dou 1 = 1;`);
             endOp = 'Enddo';
           } else {
             // If any of start, limit, or index is specified, then we need
             // to map this to a For loop.  The problem is that the
             // "BY increment" is found on the matching "ENDDO".
             // !! As we do not know the matching "ENDDO", this convertion will not work!
-            output.value += `For ${result === "" ? getNameForTempDoIdx() : result} = ${factor1 === "" ? 1 : factor1} by <increment-${EndList.length + 1}> to ${factor2 === "" ? 1 : factor2}`;
+            arrayoutput.push(" ".repeat(doIndent) + `For ${result === "" ? getNameForTempDoIdx() : result} = ${factor1 === "" ? 1 : factor1} by <increment-${EndList.length + 1}> to ${factor2 === "" ? 1 : factor2};`);
             endOp = 'Endfor';
           }
           output.nextSpaces = indent;
           if (condition.ind !== ``) {
-            endOp += `;\n       Endif`;
+            endOp = " ".repeat(indent) + endOp + `;\n       Endif`;
             condition.ind = ``;
           }
           EndList.push(endOp);
@@ -450,15 +489,55 @@ module.exports = {
           output.value = opcode;
           break;
         case `LOOKUP`:
+        {
+          let lookupOperation = `%Lookup`;
+          let altTab = ``;
+          if (/^TAB/i.test(factor2)) {
+            lookupOperation = '%Tlookup';
+            altTab = `: ${result}`;
+          }
+          if (ind1 !== ``) {
+            if (ind3 !== ``) {
+              lookupOperation += 'ge';
+            } else {
+              lookupOperation += 'gt';
+            }
+          } else if (ind2 != ``) {
+            if (ind3 !== ``) {
+              lookupOperation += 'le';
+            } else {
+              lookupOperation += 'lt';
+            }
+          }
           // if factor2 has a paren then need to split that value out
           if (factor2.indexOf(`(`) >= 0) {
             let array = factor2.substr(0, factor2.indexOf(`(`));
             let index = factor2.substring(factor2.indexOf(`(`) + 1, factor2.indexOf(`)`)).trim();
-            output.value = `*in${ind3} = (%Lookup(${factor1}: ${array}: ${index}) > 0)`;
+            arrayoutput.push(`${lookupOperation}(${factor1}: ${array}: ${index}`.trimEnd() + `${altTab});`);
           } else {
-            output.value = `*in${ind3} = (%Lookup(${factor1}: ${factor2}) > 0)`;
+            arrayoutput.push(`${lookupOperation}(${factor1}: ${factor2}`.trimEnd() + `${altTab});`);
+          }
+          if (ind1 !== ``) {
+            if (ind1 !== ind3) {
+              arrayoutput.push(`*in${ind1} = %Found();`);
+            } else {
+              arrayoutput.push(`*in${ind1} = %Found() or %Error();`);
+            }
+          }
+          if (ind2 !== ``) {
+            if (ind2 !== ind3) {
+              arrayoutput.push(`*in${ind2} = %Found();`);
+            } else {
+              arrayoutput.push(`*in${ind2} = %Found() or %Error();`);
+            }
+          }
+          if (ind3 !== ``) {
+            if (ind3 !== ind1 && ind3 !== ind2) {
+              arrayoutput.push(`*in${ind3} = %Equal();`);
+            }
           }
           break;
+        }
         case `MONITOR`:
           output.value = opcode;
           output.nextSpaces = indent;
@@ -475,7 +554,8 @@ module.exports = {
           output.ignore = true;
           break;
         case `MULT`:
-          output.value = `${result} = ${factor1} * ${factor2}`;
+          arrayoutput.push(`${result} = ${factor1 === "" ? result : factor1} * ${factor2};`);
+          addMathResultIndicators(arrayoutput, result, ind1, ind2, ind3);
           break;
         case `ON-ERROR`:
           output.beforeSpaces = -indent;
@@ -513,11 +593,21 @@ module.exports = {
           break;
         case `READ`:
         case `READC`:
-          output.value = `${opcode} ${factor2} ${result}`;
+          arrayoutput.push(`${opcode} ${factor2} ${result}`.trimEnd() + `;`);
 
           // process indicators
-          if (ind2 !== ``) output.value += `;\n       *in${ind2} = %Error()`;
-          if (ind3 !== ``) output.value += `;\n       *in${ind3} = %Eof()`;
+          if (ind2 !== ``) {
+            if (ind2 !== ind3) {
+              arrayoutput.push(`*in${ind2} = %Error();`);
+            } else {
+              arrayoutput.push(`*in${ind2} = %Error() or %Eof();`);
+            }
+          }
+          if (ind3 !== ``) {
+            if (ind3 !== ind2) {
+              arrayoutput.push(`*in${ind3} = %Eof();`);
+            }
+          }
           break;
         case `READE`:
           if (Lists[factor1.toUpperCase()]) {
@@ -553,16 +643,32 @@ module.exports = {
         case `SETGT`:
         case `SETLL`:
           if (Lists[factor1.toUpperCase()]) {
-            output.value = `${opcode} (${Lists[factor1.toUpperCase()].join(":")}) ${factor2}`;
+            arrayoutput.push(`${opcode} (${Lists[factor1.toUpperCase()].join(":")}) ${factor2}`.trimEnd() + `;`);
           } else { 
-            output.value = `${opcode} ${factor1} ${factor2}`;
+            arrayoutput.push(`${opcode} ${factor1} ${factor2}`.trimEnd() + `;`);
           }
 
-          // apply indicators
-          if (ind1 !== ``) output.value += `;\n       *in${ind1} = (not %Found())`;
-          if (ind2 !== ``) output.value += `;\n       *in${ind2} = %Error()`;
-          if (plainOp === `SETLL`) {
-            if (ind3 !== ``) output.value += `;\n       *in${ind3} = %Equal()`;
+          if (ind1 !== ``) {
+            let results = `*in${ind1} = (not %Found())`;
+            if (ind1 === ind2) {
+              results += ` or %Error()`;
+            }
+            if (ind1 === ind3) {
+              results += ` or %Equal()`;
+            }
+            arrayoutput.push(results + `;`);
+          }
+          if (ind2 !== ``) {
+            let results = `*in${ind2} = %Error()`;
+            if (ind2 === ind3) {
+              results += ` or %Equal()`;
+            }
+            arrayoutput.push(results + `;`);
+          }
+          if (ind3 !== ``) {
+            if (ind3 !== ind1 && ind3 !== ind2) {
+              arrayoutput.push(`*in${ind3} = %Equal();`);
+            }
           }
           break;
         case `SETOFF`:
@@ -582,11 +688,8 @@ module.exports = {
           output.value = `${result} = %Sqrt(${factor2})`;
           break;
         case `SUB`:
-          if (factor1) {
-            output.value = `${result} = ${factor1} - ${factor2}`;
-          } else {
-            output.value = `${result} = ${result} - ${factor2}`;
-          }
+          arrayoutput.push(`${result} = ${factor1 === "" ? result : factor1} - ${factor2};`);
+          addMathResultIndicators(arrayoutput, result, ind1, ind2, ind3);
           break;
         case `SUBDUR`:
           // If factor2 has a : then it is a duration and we are doing subtacting a
@@ -694,16 +797,19 @@ module.exports = {
           output.value = `${opcode} ${factor2} ${result}`;
           break;
         case `XFOOT`:
-          output.value = `${result} = %Xfoot(${factor2})`;
+          arrayoutput.push(`${result} = %Xfoot(${factor2});`);
+          addMathResultIndicators(arrayoutput, result, ind1, ind2, ind3);
           break;
         case `XLATE`:
           output.value = `${result} = %Xlate(${factor1}: ${factor2})`;
           break;
         case `Z-ADD`:
-          output.value = `${result} = ${factor2}`;
+          arrayoutput.push(`${result} = ${factor2};`);
+          addMathResultIndicators(arrayoutput, result, ind1, ind2, ind3);
           break;
         case `Z-SUB`:
-          output.value = `${result} = -${factor2}`;
+          arrayoutput.push(`${result} = -${factor2};`);
+          addMathResultIndicators(arrayoutput, result, ind1, ind2, ind3);
           break;
 
         default:
@@ -751,6 +857,33 @@ module.exports = {
 
     function getNameForTempDoIdx() {
       return `rpg_free_temporary_do_index_${++idTempDoIdx}`;
+    }
+
+    /** Pushes the setting of result indicators for math operations into the output */
+    function addMathResultIndicators(output = [], result = ``, ind1 = ``, ind2 = ``, ind3 = ``) {
+      if (ind1 !== ``) {
+        if (ind1 === ind2) {
+          if (ind1 === ind3) {
+            output.push(`*in${ind1} = *ON;`)
+          } else {
+            output.push(`*in${ind1} = (${result} <> 0);`)
+          }
+        } else if (ind1 === ind3) {
+          output.push(`*in${ind1} = (${result} >= 0);`)
+        } else {
+          output.push(`*in${ind1} = (${result} > 0);`)
+        }
+      }
+      if (ind2 !== `` && ind2 !== ind1) {
+        if (ind2 === ind3) {
+          output.push(`*in${ind2} = (${result} <= 0);`)
+        } else {
+          output.push(`*in${ind2} = (${result} < 0);`)
+        }
+      }
+      if (ind3 !== `` && ind3 !== ind1 && ind3 !== ind2) {
+        output.push(`*in${ind3} = (${result} = 0);`)
+      }
     }
   }
 }
