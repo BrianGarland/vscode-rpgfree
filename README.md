@@ -16,10 +16,12 @@ This is based on [rpgfreeweb](https://github.com/BrianGarland/rpgfreeweb) origin
 2. `npm i`
 3. 'Run Extension' from vscode debug (`F5`).
 
-#### Build and install your own custom version
+### Build and install your own custom version
 
-1. Use `vsce package`
-2. Right-click the vscode-rpgfree-*.vsix file and select _Install Extension VSIX_.
+1. Clone repo
+2. Make changes
+3. Use `vsce package`
+4. Right-click the vscode-rpgfree-*.vsix file and select _Install Extension VSIX_
 
 ## How to use
 
