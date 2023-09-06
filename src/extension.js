@@ -49,7 +49,11 @@ function RpgleFree() {
 
   // Convert the array of lines to free format
   let conv = new RpgleFreeX(lines,  configuration.get(`indent`));
-  conv.parse();
+  try {
+    conv.parse();
+  } catch(e) {
+    console.log(e);
+  }
 
   // As we added an empty line to the array of
   // lines to be converted, the last line _should_ 

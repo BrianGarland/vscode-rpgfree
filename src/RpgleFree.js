@@ -247,6 +247,8 @@ module.exports = class RpgleFree {
       }
 
       ignoredColumns = line.substring(1, 6) + `  `;
+      // !! FOR NOW, IGNORE THE IGNORED COLUMNS ... do not attempt to keep the mod markers in the gutter positions 1-5.
+      ignoredColumns = "".padEnd(ignoredColumns.length);
       isCommentLine = line[7] === `*` || 0 == line.trim().indexOf(`//`);
       isDirectiveLine = line[7] === `/`;
       if (isCommentLine || isDirectiveLine) {
@@ -272,7 +274,7 @@ module.exports = class RpgleFree {
     } else if (0 < index && line.startsWith(` **`)) {
       compileTimeTableLines = true;
       if (this.lastSpecType !== ``) {
-        ignoredColumns = " ".repeat(ignoredColumns.length);
+        ignoredColumns = "".padEnd(ignoredColumns.length);
         result = specs[this.lastSpecType].final(this.indent, wasSub, wasLIKEDS);
         mergeArrayOutput.call(this, false);
 

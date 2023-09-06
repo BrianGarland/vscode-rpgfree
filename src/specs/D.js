@@ -280,20 +280,21 @@ module.exports = {
           keywords = `DtaAra(*AUTO) ` + keywords.trim();
         }
 
-        let DSisLIKEDS = (keywords.toUpperCase().indexOf(`LIKEDS`) >= 0);
-        output.isLIKEDS = DSisLIKEDS;
+        const isLikeDsLikeRec = (0 <= keywords.toUpperCase().indexOf(`LIKEDS`))
+          || (0 <= keywords.toUpperCase().indexOf(`LIKEREC`));
+        output.isLIKEDS = isLikeDsLikeRec;
 
         if (name == ``) {
           name = `*N`;
         }
 
         isSubf = (field == `DS`);
-        output.isSub = (DSisLIKEDS == false);
+        output.isSub = (true !== isLikeDsLikeRec);
         output.isHead = true;
 
         output.value = `Dcl-` + field + ` ` + name + ` ` + type + ` ` + keywords.trim();
 
-        if (DSisLIKEDS == false) {
+        if (true !== isLikeDsLikeRec) {
           output.isSub = true;
           output.nextSpaces = indent;
         }
@@ -303,7 +304,7 @@ module.exports = {
       }
 
       case ``:
-        output.isSub = (wasLIKEDS == false);
+        output.isSub = (true !== wasLIKEDS);
         if (name == ``) {
           name = `*N`;
         }

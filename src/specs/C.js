@@ -662,6 +662,7 @@ module.exports = {
           break;
 
         case `DO`:
+        {
           let nestedIndent = 0;
           let endOp = ``;
 
@@ -693,10 +694,11 @@ module.exports = {
           output.nextSpaces = indent;
           endList.push(endOp);
           break;
+        }
 
         case `DOU`:
         case `DOW`:
-          arrayoutput.push(buildSourceLine(nestedIndent, true, opCode.output, factor2Extended));
+          arrayoutput.push(buildSourceLine(0, true, opCode.output, factor2Extended));
           output.nextSpaces = indent;
           endList.push(OPCODES[`ENDDO`]);
           break;
@@ -709,7 +711,7 @@ module.exports = {
         case `DOUNE`:
         {
           const operator = EQUALITYOPERATORS[opCode.key.slice(-2)];
-          arrayoutput.push(buildSourceLine(nestedIndent, true, `${OPCODES[`DOU`]}(${opCode.extender})`, factor1, operator, factor2));
+          arrayoutput.push(buildSourceLine(0, true, `${OPCODES[`DOU`]}(${opCode.extender})`, factor1, operator, factor2));
           output.nextSpaces = indent;
           endList.push(OPCODES[`ENDDO`]);
           break;
@@ -723,7 +725,8 @@ module.exports = {
         case `DOWNE`:
         {
           const operator = EQUALITYOPERATORS[opCode.key.slice(-2)];
-          arrayoutput.push(buildSourceLine(nestedIndent, true, `${OPCODES[`DOW`]}(${opCode.extender})`, factor1, operator, factor2));
+
+          arrayoutput.push(buildSourceLine(0, true, `${OPCODES[`DOW`]}(${opCode.extender})`, factor1, operator, factor2));
           output.nextSpaces = indent;
           endList.push(OPCODES[`ENDDO`]);
           break;
@@ -1187,7 +1190,7 @@ module.exports = {
             addSetResultIndicators(arrayoutput, nestedIndent, false, ind2, ind3);
           }
           arrayoutput.push(buildSourceLine(nestedIndent, true, result, `=`
-            ,`%Scan(${factor1}: ${factor2}${optionalStartLength})`));
+            ,`%Scan(${searchArg}: ${sourceString}${optionalStartLength})`));
           if (0 < ind3.length) {
             arrayoutput.push(buildSourceLine(nestedIndent, true, `*in${ind3}`, `=`, `%Found()`));
           }
@@ -1406,6 +1409,8 @@ module.exports = {
 
         case `XLATE`:
         {
+          let nestedIndent = 0;
+
           if (0 > opCode.extender.indexOf(`P`)) {
             output.ignore = true;
           } else {
