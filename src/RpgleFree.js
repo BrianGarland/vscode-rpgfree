@@ -17,6 +17,7 @@ class Message {
 
 module.exports = class RpgleFree {
   constructor(lines = [], indent = 2) {
+    this.lastSpecType = ``;
     this.currentLine = -1;
     this.lines = lines;
     this.indent = indent;
@@ -30,6 +31,12 @@ module.exports = class RpgleFree {
     };
 
     this.messages = [];
+
+    // Re-initialize the "module" (cached) variables used by
+    //  each of the spec parser.
+    for (const spec in specs) {
+      specs[spec].init();
+    }
   }
 
   addVar(obj) {
@@ -221,6 +228,7 @@ module.exports = class RpgleFree {
     let lastBlock = ``;
     let index = 0;
     let isCommentLine = false;
+    let isDirectiveLine = false;
     let compileTimeTableLines = false;
 
     length = this.lines.length;
@@ -231,6 +239,7 @@ module.exports = class RpgleFree {
 
       this.currentLine = index;
       line = ` ` + this.lines[index].padEnd(this.maxFixedFormatLineLength);
+
       comment = ``;
       if (line.length > (this.maxFixedFormatLineLength + 1)) {
         line = line.substring(0, (this.maxFixedFormatLineLength + 1));
@@ -238,8 +247,12 @@ module.exports = class RpgleFree {
       }
 
       ignoredColumns = line.substring(1, 6) + `  `;
-      spec = line[6].toUpperCase();
       isCommentLine = line[7] === `*` || 0 == line.trim().indexOf(`//`);
+      isDirectiveLine = line[7] === `/`;
+      if (isCommentLine || isDirectiveLine) {
+        line = line.replace(/^(.{6})(.)(\*|\/)/, "$1 $3");
+      }
+      spec = line[6].trim().toUpperCase();
 
       if (this.lines[index + 1]) {
         nextline = ` ` + this.lines[index + 1].padEnd(this.maxFixedFormatLineLength);
@@ -250,16 +263,23 @@ module.exports = class RpgleFree {
         nextline = ``;
       }
 
-      // If this is the start of compile-time arrays, fall through so we can
-      //  flush any cached end block(s).  However, on the next line we simply
-      //  want to stop parse and leave all compile-time source as-is.
-      if (0 < index && line.startsWith(` **`)) {
-        compileTimeTableLines = true;
-        spec = ``;
-        isCommentLine = false;
-      } else if (compileTimeTableLines) {
-        break;
+      // If we have already marked the beginning of the compile-time
+      //  table source records, we can stop parsing.  However, if this is
+      //  the marker of the (first) compile time table, flush any cached
+      //  lines from the last spec type before skipping conversion.
+    if (compileTimeTableLines) {
+      break;
+    } else if (0 < index && line.startsWith(` **`)) {
+      compileTimeTableLines = true;
+      if (this.lastSpecType !== ``) {
+        ignoredColumns = " ".repeat(ignoredColumns.length);
+        result = specs[this.lastSpecType].final(this.indent, wasSub, wasLIKEDS);
+        mergeArrayOutput.call(this, false);
+
+        this.lastSpecType = ``;
       }
+      break;
+    }
 
       if (isCommentLine) {
         spec = ``;
@@ -269,7 +289,7 @@ module.exports = class RpgleFree {
         //  to be true ILEDocs start/end markers they must start
         //  in position 6.
         const ILEDocStartEndComment = line.substring(6).trimEnd();
-        if (ILEDocStartEndComment === `/**`) {
+        if (ILEDocStartEndComment === ` **`) {
           comment = `/`;
         } else if (ILEDocStartEndComment === ` */`) {
           comment = `/`;
@@ -304,6 +324,7 @@ module.exports = class RpgleFree {
                 spec = ``;
                 this.lines.splice(index, 1);
                 index--;
+                // ?? length--;
                 continue;
               default:
                 spec = ``;
@@ -324,183 +345,82 @@ module.exports = class RpgleFree {
       }
 
       if (specs[spec] !== undefined) {
-        result = specs[spec].Parse(line, this.indent, wasSub, wasLIKEDS);
-
-        if (result.isSub === true) {
-          if (result.isHead === true && wasSub && !wasLIKEDS) {
-            endBlock(this.lines, this.indent);
-          }
-          wasSub = true;
-          lastBlock = result.blockType;
-        } else if (result.isSub === undefined && wasSub) {
-          endBlock(this.lines, this.indent);
-
-          // Fixed format RPG does not allow nested DS.
-          //  If the current block is DS and the previous was
-          //  also a DS, then we need to force an end.
-          //  This is required for DS defined with an EXTNAME
-          //  as they may or may not have subfields.
-        } else if (result.blockType === `DS` && wasSub) {
-          endBlock(this.lines, this.indent);
-        }
-
-        wasLIKEDS = result.isLIKEDS === true;
-
-        if (result.var !== undefined) {
-          this.addVar(result.var);
-        }
-
-        isMove = result.move !== undefined;
-        hasKeywords = result.aboveKeywords !== undefined;
-
-        if (result.message) {
-          this.messages.push(new Message(this.currentLine, result.message));
-        }
-
-        // If an increment replacement value has been returned, we need
-        //  to look back through the code to see if we can find the
-        //  named increment and replace it with the value returned.
-        if (result.incrementReplacement !== undefined && null !== result.incrementReplacement.name) {
-          const matchToken = new RegExp(`(For .*?)( by ${result.incrementReplacement.name})`);
-          let replaced = false;
-          for (let idx = this.currentLine - 1; idx >= 0; idx--) {
-            if (this.lines[idx].match(matchToken)) {
-              if ("" === result.incrementReplacement.value || "1" === result.incrementReplacement.value) {
-                this.lines[idx] = this.lines[idx].replace(matchToken, `$1`);
-              } else {
-                this.lines[idx] = this.lines[idx].replace(matchToken, `$1 by ${result.incrementReplacement.value}`);
-                // If the increment value is negative, we need to switch the "For ... _to_ " to "For ... _downto_ ".
-                // **CAUTION**: If the increment value is a variable, we have no idea if the value is going to
-                //  be positive or negative.  As such, the DO/ENDDO converstion to FOR/ENDFOR may not work.
-                if (result.incrementReplacement.value.charAt(0) === `-`) {
-                  this.lines[idx] = this.lines[idx].replace(new RegExp(`(For .* by ${result.incrementReplacement.value})( to )`), `$1 downto `);
-                }
-              }
-              replaced = true;
-              break;
-            }
-            if (!replaced) {
-              this.messages.push(new Message(this.currentLine, `Unabled to find matching FOR for END/ENDDO; increment "${result.incrementReplacement.name}" with value "${result.incrementReplacement.value}" not set.`));    
-            }
-          }
-        }
-
-        switch (true) {
-          case result.ignore:
-            break;
-
-          case isMove:
-            result = this.suggestMove(result.move);
-            if (result.change) {
-              this.lines[index] = `${ignoredColumns}${"".padEnd(spaces)}${result.value}`;
-            }
-            break;
-
-          case hasKeywords:
-          {
-            let endStmti = this.lines[index - 1].indexOf(`;`);
-            let endStmt = this.lines[index - 1].substring(endStmti); //Keep those end line comments :D
-            let prevLineLastChar = this.lines[index - 1].substring(endStmti - 1, endStmti);
-            switch (prevLineLastChar) {
-              case `+`:
-                this.lines[index - 1] =
-                  this.lines[index - 1].substring(0, endStmti - 1) +
-                  result.aboveKeywords.trim() +
-                  endStmt;
-                break;
-              case `-`:
-                this.lines[index - 1] =
-                  this.lines[index - 1].substring(0, endStmti - 1) +
-                  result.aboveKeywords.trimRight() +
-                  endStmt;
-                break;
-              default:
-                this.lines[index - 1] =
-                  this.lines[index - 1].substring(0, endStmti) +
-                  ` ` +
-                  result.aboveKeywords.trim() + endStmt;
-                break;
-            }
-            this.lines.splice(index, 1);
-            index--;
-
-            this.lines[index] = postProcessKeyWords(
-              this.lines[index],
-              result.blockType
-            );
-            break;
+        // If we have switched the specification type,
+        //  flush any cached info from the prior spec type.
+        if (this.lastSpecType !== spec) {
+          if (this.lastSpecType !== `` && spec) {
+            result = specs[this.lastSpecType].final(this.indent, wasSub, wasLIKEDS);
+            outputParsedResults.call(this);
           }
 
-          case result.remove:
-            if (comment.trim() !== ``) {
-              this.lines[index] =`${ignoredColumns}${"".padEnd(spaces)}//${comment}`;
-            } else {
-              this.lines.splice(index, 1);
-              index--;
-              length++;
-            }
-            break;
-
-          case result.change:
-            spaces += result.beforeSpaces;
-            // no break, need to fall through to default logic
-          default:
-            if (result.arrayoutput) {
-              this.lines.splice(index, 1);
-
-              for (let y in result.arrayoutput) {
-                result.arrayoutput[y] = `${ignoredColumns}${"".padEnd(spaces)}${result.arrayoutput[y]}`;
-                this.lines.splice(index, 0, result.arrayoutput[y]);
-                index++;
-                length++;
-              }
-              while (result.arrayoutput.length > 0) {
-                result.arrayoutput.pop();
-              }
-
-              index--;
-            } else {
-              this.lines[index] = `${ignoredColumns}${"".padEnd(spaces)}${result.value}`;
-              this.lines[index] = postProcessKeyWords(
-                this.lines[index],
-                result.blockType
-              );
-
-              if (comment.trim() !== ``) {
-                this.lines[index] += ` //${comment}`;
-              }
-            }
-
-            spaces += result.nextSpaces;
-            break;
+          this.lastSpecType = spec;
         }
+        result = specs[spec].parse(line, this.indent, wasSub, wasLIKEDS);
+        outputParsedResults.call(this);
       } else {
-        if (wasSub && !isCommentLine) {
+        // Assume comments and directives both apply to the
+        //  preceeding block.
+        if (wasSub && !isCommentLine && !isDirectiveLine) {
           endBlock(this.lines, this.indent);
+        } else {
+          // If the current line is not a comment nor a directive and is not empty,
+          //  flush the prior spec type as we do not know what this type is.
+          if (line.trim() !== `` && !isCommentLine && !isDirectiveLine && spec !== this.lastSpecType) {
+            if (this.lastSpecType !== ``) {
+              result = specs[this.lastSpecType].final(this.indent, wasSub, wasLIKEDS);
+              mergeArrayOutput.call(this, false);
+              this.lastSpecType = ``;
+            }
+          }
         }
       }
     }
 
     // catch any held info incase the last line was not a "spec"
-    if (result.arrayoutput) {
-      this.lines.splice(index, 1);
-      for (let y in result.arrayoutput) {
-        result.arrayoutput[y] = `${ignoredColumns}${"".padEnd(spaces)}${result.arrayoutput[y]}`;
-        this.lines.splice(index, 0, result.arrayoutput[y]);
-        index++;
-        length++;
-      }
+    mergeArrayOutput.call(this, false);
+
+    if (this.lastSpecType !== ``) {
+      result = specs[this.lastSpecType].final(this.indent, wasSub, wasLIKEDS);
+      this.currentLine = this.lines.length - 1;
+      index = this.currentLine;
+      length = this.currentLine;
+      mergeArrayOutput.call(this, false);
+  
+      this.lastSpecType = ``;
     }
 
     function endBlock(lines, indent) {
       if (lastBlock !== undefined && lastBlock !== ``) {
-        spaces -= indent;
+        if (spaces > indent) {
+          spaces -= indent;
+        } else {
+          spaces = 0;
+        }
         lines.splice(index, 0, `${"".padEnd(7)}${"".padEnd(spaces)}End-${lastBlock};`
         );
         index++;
         length++;
       }
       wasSub = false;
+    }
+
+    /** Merges the parsed array output into the selected lines to be converted */
+    function mergeArrayOutput(replaceCurrentLine = false) {
+      if (result.arrayoutput.length > 0) {
+        if (replaceCurrentLine) {
+          this.lines.splice(index, 1);
+        }
+        for (let y in result.arrayoutput) {
+          this.lines.splice(index, 0, `${ignoredColumns}${"".padEnd(spaces)}${result.arrayoutput[y]}`);
+          index++;
+          length++;
+        }
+        result.arrayoutput = [];
+        if (replaceCurrentLine) {
+          index--;
+          // ?? length--;
+        }
+      }
     }
 
     /** Quotes the EXTNAME and EXTFLD values */
@@ -604,6 +524,155 @@ module.exports = class RpgleFree {
       line = fixVaryingKeyword(line, blockType);
       line = quoteExtNameValue(line, blockType);
       return line;
+    }
+    
+    /** Outputs the parsed results */
+    function outputParsedResults() {
+      if (result.isSub !== undefined && result.isSub === true) {
+        if (result.isHead === true && wasSub && !wasLIKEDS) {
+          endBlock(this.lines, this.indent);
+        }
+        wasSub = true;
+        lastBlock = result.blockType;
+      } else if (result.isSub === undefined && wasSub) {
+        endBlock(this.lines, this.indent);
+
+        // Fixed format RPG does not allow nested DS.
+        //  If the current block is DS and the previous was
+        //  also a DS, then we need to force an end.
+        //  This is required for DS defined with an EXTNAME
+        //  as they may or may not have subfields.
+      } else if (result.blockType === `DS` && wasSub) {
+        endBlock(this.lines, this.indent);
+      }
+
+      wasLIKEDS = result.isLIKEDS === true;
+
+      if (result.var !== undefined) {
+        this.addVar(result.var);
+      }
+
+      isMove = result.move !== undefined;
+      hasKeywords = result.aboveKeywords !== undefined;
+
+      if (result.message) {
+        this.messages.push(new Message(this.currentLine, result.message));
+      }
+
+      // If an increment replacement value has been returned, we need
+      //  to look back through the code to see if we can find the
+      //  named increment and replace it with the value returned.
+      if (result.incrementReplacement !== undefined && null !== result.incrementReplacement.name) {
+        const matchToken = new RegExp(`(For .*?)( by ${result.incrementReplacement.name})`);
+        let replaced = false;
+        for (let idx = this.currentLine - 1; idx >= 0; idx--) {
+          if (this.lines[idx].match(matchToken)) {
+            if ("" === result.incrementReplacement.value || "1" === result.incrementReplacement.value) {
+              this.lines[idx] = this.lines[idx].replace(matchToken, `$1`);
+            } else {
+              this.lines[idx] = this.lines[idx].replace(matchToken, `$1 by ${result.incrementReplacement.value}`);
+              // If the increment value is negative, we need to switch the "For ... _to_ " to "For ... _downto_ ".
+              // **CAUTION**: If the increment value is a variable, we have no idea if the value is going to
+              //  be positive or negative.  As such, the DO/ENDDO converstion to FOR/ENDFOR may not work.
+              if (result.incrementReplacement.value.charAt(0) === `-`) {
+                this.lines[idx] = this.lines[idx].replace(new RegExp(`(For .* by ${result.incrementReplacement.value})( to )`), `$1 downto `);
+              }
+            }
+            replaced = true;
+            break;
+          }
+          if (!replaced) {
+            this.messages.push(new Message(this.currentLine, `Unabled to find matching FOR for END/ENDDO; increment "${result.incrementReplacement.name}" with value "${result.incrementReplacement.value}" not set.`));    
+          }
+        }
+      }
+
+      switch (true) {
+        case result.ignore:
+          break;
+
+        case isMove:
+          result = this.suggestMove(result.move);
+          if (result.change) {
+            this.lines[index] = `${ignoredColumns}${"".padEnd(spaces)}${result.value}`;
+          }
+          break;
+
+        case hasKeywords:
+        {
+          let endStmti = this.lines[index - 1].indexOf(`;`);
+          let endStmt = this.lines[index - 1].substring(endStmti); //Keep those end line comments :D
+          let prevLineLastChar = this.lines[index - 1].substring(endStmti - 1, endStmti);
+          switch (prevLineLastChar) {
+            case `+`:
+              this.lines[index - 1] =
+                this.lines[index - 1].substring(0, endStmti - 1) +
+                result.aboveKeywords.trim() +
+                endStmt;
+              break;
+            case `-`:
+              this.lines[index - 1] =
+                this.lines[index - 1].substring(0, endStmti - 1) +
+                result.aboveKeywords.trimRight() +
+                endStmt;
+              break;
+            default:
+              this.lines[index - 1] =
+                this.lines[index - 1].substring(0, endStmti) +
+                ` ` +
+                result.aboveKeywords.trim() + endStmt;
+              break;
+          }
+          this.lines.splice(index, 1);
+          index--;
+          // ?? length--;
+
+          this.lines[index] = postProcessKeyWords(
+            this.lines[index],
+            result.blockType
+          );
+          break;
+        }
+
+        case result.remove:
+          if (comment.trim() !== ``) {
+            this.lines[index] =`${ignoredColumns}${"".padEnd(spaces)}//${comment}`;
+          } else {
+            this.lines.splice(index, 1);
+            index--;
+            length--;  // was originally ++ ?!?
+          }
+          break;
+
+        case result.change:
+          spaces += result.beforeSpaces;
+          if (0 > spaces) {
+            spaces = 0;
+          }
+          // no break, need to fall through to default logic
+        default:
+          if (result.arrayoutput.length > 0) {
+            // Relace the current line with the array of output lines
+            mergeArrayOutput.call(this, true);
+
+          } else {
+            this.lines[index] = `${ignoredColumns}${"".padEnd(spaces)}${result.value}`;
+            this.lines[index] = postProcessKeyWords(
+              this.lines[index],
+              result.blockType
+            );
+
+            if (comment.trim() !== ``) {
+              this.lines[index] += ` //${comment}`;
+            }
+          }
+
+          spaces += result.nextSpaces;
+          if (0 > spaces) {
+            spaces = 0;
+          }
+          break;
+      }
     }
   }
 };

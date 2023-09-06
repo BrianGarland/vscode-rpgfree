@@ -2,7 +2,7 @@
 	"name": "vscode-rpgfree",
 	"displayName": "RPGLE Free",
 	"description": "Visual Studio Code extension to convert fixed format RPGLE to free format",
-	"version": "0.0.27-preview+20230829.4",
+	"version": "0.0.27-preview+20230905.2",
 	"keywords": [
 		"ibmi",
 		"rpgle",

@@ -56,7 +56,7 @@ function RpgleFree() {
   // be blank.  But, before we blindly remove it
   // lets just make sure it truly is empty before
   // we pop it off.
-  if (lines.length > 0 && lines[lines.length - 1] === ``) {
+  if (lines.length > 0 && lines[lines.length - 1].trim() === ``) {
     lines.pop();
   }
 

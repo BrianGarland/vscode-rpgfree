@@ -1,13 +1,32 @@
-module.exports = {
-  Parse: function (input, indent, wasSub) {
-    let output = {
-      remove: false,
-      change: false,
-      value: ``,
+let convertedThisSpec = false;
 
+module.exports = {
+  init: function() {
+    convertedThisSpec = false;
+  },
+
+  initOutput: function() {
+    return {
+      arrayoutput: [],
       beforeSpaces: 0,
-      nextSpaces: 0
+      change: false,
+      nextSpaces: 0,
+      remove: false,
+      value: ``
     };
+  },
+
+  final: function(indent, wasSub, wasLIKEDS) {
+    let output = this.initOutput();
+    if (!convertedThisSpec) {
+      return output;
+    }
+
+    return output;
+  },
+
+  parse: function (input, indent, wasSub, wasLIKEDS) {
+    let output = this.initOutput();
 
     let name = input.substr(7, 10).trim(); //File name
     let type = input.substr(17, 1).toUpperCase(); // I, U, O, C
@@ -17,6 +36,8 @@ module.exports = {
     let field = input.substr(34, 1).toUpperCase(); //KEYED
     let device = input.substr(36, 7).toUpperCase().trim(); //device: DISK, WORKSTN
     let keywords = input.substr(44).trim();
+
+    convertedThisSpec = true;
 
     output.value = `Dcl-F ${name}`;
 

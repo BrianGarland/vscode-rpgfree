@@ -4,25 +4,40 @@ const { CommentThreadCollapsibleState } = require("vscode");
 let isSubf = false;
 let prevName = ``;
 let blockType = ``;
+let convertedThisSpec = false;
 
 module.exports = {
-  Parse: function (input, indent, wasSub, wasLIKEDS) {
-    let output = {
-      remove: false,
-      change: false,
-      value: ``,
+  init: function() {
+    isSubf = false;
+    prevName = ``;
+    blockType = ``;
+    convertedThisSpec = false;
+  },
 
+  initOutput: function() {
+    return {
+      arrayoutput: [],
       beforeSpaces: 0,
+      change: false,
       nextSpaces: 0,
+      remove: false,
+      value: ``
 
-      var: {
-        standalone: false,
-        name: ``,
-        type: ``,
-        len: 0
-      }
+      , var: {standalone: false, name: ``, type: ``, len: 0}
     };
+  },
 
+  final: function(indent, wasSub, wasLIKEDS) {
+    let output = this.initOutput();
+    if (!convertedThisSpec) {
+      return output;
+    }
+
+    return output;
+  },
+
+  parse: function (input, indent, wasSub, wasLIKEDS) {
+    let output = this.initOutput();
     let potentialName = input.substr(7).trim();
     let name = input.substr(7, 15).trim();
     let pos = input.substr(30, 3).trim();
@@ -33,6 +48,8 @@ module.exports = {
     let keywords = input.substr(44).trimRight();
     let reservedWord = input.substr(26, 14).trim().toUpperCase();
     let isReservedWord = (reservedWord.substr(0, 1) === `*`);
+
+    convertedThisSpec = true;
 
     // If this is a reserved word (e.g., *PROC, *STATUS), force
     //  the pos and len to empty strings.
@@ -267,8 +284,8 @@ module.exports = {
         output.isLIKEDS = DSisLIKEDS;
 
         if (name == ``) {
-name = `*N`;
-}
+          name = `*N`;
+        }
 
         isSubf = (field == `DS`);
         output.isSub = (DSisLIKEDS == false);
