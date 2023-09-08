@@ -31,6 +31,7 @@ module.exports = class RpgleFree {
     };
 
     this.messages = [];
+    this.wasVarDtaAra = false;
 
     // Re-initialize the "module" (cached) variables used by
     //  each of the spec parser.
@@ -426,18 +427,28 @@ module.exports = class RpgleFree {
     }
 
     /** Quotes name values */
-    function quoteNameValues(line = ``, blockType = ``) {
+    function quoteNameValues(line = ``, blockType = ``, wasVarDtaAra = true) {
       let quoteName = true;
 
-      // This only applys to DS block types
+      // This only applys to DS block types and other Dcl-* lines
       if (blockType !== `DS` && (blockType !== `` || !/Dcl-.*DTAARA *\(/i.test(line))) {
+        return line;
+      }
+
+      // If we cannot find the DTAARA/EXTNAME/EXTFLD with a
+      //  value to be enclosed in parens, then do nothing (more).
+      let keywordParts = line.match(/^(.* (DTAARA|EXTNAME|EXTFLD) *?\((\*[^:]*: *)*)([^)]+)(\).*)$/i);
+      if (!keywordParts || keywordParts.length !== 6) {
         return line;
       }
 
       // Turn off quoting if this is a DTAARA that used the
       //  *VAR modifier.
-      if (/DTAARA *\([^\)]*\*VAR *:/i.test(line)) {
+      if (/DTAARA *\([^\)]*\*VAR *:.*?\)/i.test(line)) {
         line = line.replace(/(DTAARA *\([^\)]*)\*VAR *:/i, '$1');
+        quoteName = false;
+        wasVarDtaAra = true;
+      } else if (true === wasVarDtaAra) {
         quoteName = false;
       }
 
@@ -448,14 +459,8 @@ module.exports = class RpgleFree {
         line = line.replace(/DTAARA *\( */i, `DtaAra(*AUTO: `);
       }
 
-      // If we cannot find the DTAARA/EXTNAME/EXTFLD with a
-      //  value to be enclosed in parens, then do nothing.
-      const keywordParts = line.match(/^(.* (DTAARA|EXTNAME|EXTFLD) *?\((\*[^:]*: *)*)([^)]+)(\).*)$/i);
-      if (!keywordParts || keywordParts.length !== 6) {
-        return line;
-      }
-
       // If the value is already quoted, do nothing.
+      keywordParts = line.match(/^(.* (DTAARA|EXTNAME|EXTFLD) *?\((\*[^:]*: *)*)([^)]+)(\).*)$/i);
       let extValue = keywordParts[4].trim();
       if (extValue.substring(0, 1) === `'`) {
         return line;
@@ -475,6 +480,7 @@ module.exports = class RpgleFree {
       if (true === quoteName) {
         extName = `'${extName.toUpperCase()}'`;
       }
+      wasVarDtaAra = false;
       return `${keywordParts[1]}${extName}${extOptions}${keywordParts[5]}`;
     }
 
@@ -541,9 +547,9 @@ module.exports = class RpgleFree {
      *  lines, it is necessary to perform some additional processing of keywords
      *  once we have merged the multiple lines into a single line.
      */
-    function postProcessKeyWords(line = ``, blockType = ``) {
+    function postProcessKeyWords(line = ``, blockType = ``, wasVarDtaara = false) {
       line = fixVaryingKeyword(line, blockType);
-      line = quoteNameValues(line, blockType);
+      line = quoteNameValues(line, blockType, wasVarDtaara);
       return line;
     }
     
@@ -648,12 +654,7 @@ module.exports = class RpgleFree {
           index--;
           // ?? length--;
 
-          // ?? Originally we were doing all post processing of keywords.
-          // ??  However, this caused DTAARA names defined with *VAR to be
-          // ??  doubled processed ... resulting in the *VAR variable name
-          // ??  being quoted.
-          // ?? this.lines[index] = postProcessKeyWords(this.lines[index], result.blockType);
-          this.lines[index] = fixVaryingKeyword(this.lines[index], result.blockType);
+          this.lines[index] = postProcessKeyWords(this.lines[index], result.blockType, this.wasVarDtaAra);
           break;
         }
 
@@ -680,7 +681,7 @@ module.exports = class RpgleFree {
 
           } else {
             this.lines[index] = `${ignoredColumns}${"".padEnd(spaces)}${result.value}`;
-            this.lines[index] = postProcessKeyWords(this.lines[index], result.blockType);
+            this.lines[index] = postProcessKeyWords(this.lines[index], result.blockType, this.wasVarDtaAra);
             if (comment.trim() !== ``) {
               this.lines[index] += ` //${comment}`;
             }
