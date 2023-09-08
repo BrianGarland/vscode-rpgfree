@@ -31,6 +31,8 @@ const OPCODES = {
   "CLOSE": "Close",
   "COMMIT": "Commit",
   "COMP": "Comp",
+  "DATA-GEN": "Data-Gen",
+  "DATA-INTO": "Data-Into",
   "DEALLOC": "Dealloc",
   "DELETE": "Delete",
   "DIV": "Div",
@@ -90,6 +92,7 @@ const OPCODES = {
   "MULT": "Mult",
   "NEXT": "Next",
   "ON-ERROR": "On-Error",
+  "ON-EXCP": "On-Excp",
   "ON-EXIT": "On-Exit",
   "OPEN": "Open",
   "OR": "Or",
@@ -130,6 +133,8 @@ const OPCODES = {
   "UNLOCK": "Unlock",
   "UPDATE": "Update",
   "WHEN": "When",
+  "WHEN-IN": "When-In",
+  "WHEN-IS": "When-Is",
   "WHENEQ": "WhenEq",
   "WHENGE": "WhenGE",
   "WHENGT": "WhenGT",
@@ -139,6 +144,8 @@ const OPCODES = {
   "WRITE": "Write",
   "XFOOT": "XFoot",
   "XLATE": "XLate",
+  "XML-INTO": "Xml-Into",
+  "XML-SAX": "Xml-Sax",
   "Z-ADD": "Z-Add",
   "Z-SUB": "Z-Sub",
   };
@@ -242,7 +249,9 @@ module.exports = {
     // If this is a known op-code, reformat the output op-code so that it has consistent
     //  casing and any extenders are upper-cased and separated by 1 space.
     if (OPCODES[opCode.key] !== undefined) {
-      opCode.output = OPCODES[opCode.key] + (0 === opCode.extender.length ? `` : `(${opCode.extender})`);
+      // opCode.output = OPCODES[opCode.key] + (0 === opCode.extender.length ? `` : `(${opCode.extender})`);
+      opCode.output = OPCODES[opCode.key];
+      addOpCodeExtender(opCode, ``);
     }
 
     convertedThisSpec = true;
@@ -627,7 +636,15 @@ module.exports = {
           addSetResultIndicators(arrayoutput, 0, false, ind1, ind2, ind3);
           addCompResultIndicators(arrayoutput, 0, factor1, factor2, ind1, ind2, ind3);
           break;
-
+  
+        case `DATA-GEN`:
+          arrayoutput.push(buildSourceLine(0, true, opCode.output, factor2Extended));
+          break;
+  
+        case `DATA-INTO`:
+          arrayoutput.push(buildSourceLine(0, true, opCode.output, factor2Extended));
+          break;
+    
         case `DEALLOC`:
           if (0 < ind2.length) {
             addOpCodeExtender(opCode, `E`);
@@ -1003,6 +1020,7 @@ module.exports = {
           break;
 
         case `ON-ERROR`:
+        case `ON-EXCP`:
         case `ON-EXIT`:
           output.beforeSpaces = -indent;
           arrayoutput.push(buildSourceLine(0, true, opCode.output, factor2Extended));
@@ -1368,6 +1386,8 @@ module.exports = {
           output.nextSpaces = indent;
           break;
 
+        case `WHEN-IN`:
+        case `WHEN-IS`:
         case `WHENEQ`:
         case `WHENNE`:
         case `WHENLT`:
@@ -1430,6 +1450,14 @@ module.exports = {
           }
           break;
         }
+
+      case `XML-INTO`:
+        arrayoutput.push(buildSourceLine(0, true, opCode.output, factor2Extended));
+        break;
+
+      case `XML-SAX`:
+        arrayoutput.push(buildSourceLine(0, true, opCode.output, factor2Extended));
+        break;
 
         case `Z-ADD`:
         {
@@ -1558,12 +1586,17 @@ module.exports = {
 
     /** Removes the given op-code extender/array of extenders from the op-code */
     function removeOpCodeExtender(opCode = {}, extender) {
-      const extendersToRmv = [].concat(extender);
       let removedAnExtender = false;
-      for (let idx in extendersToRmv) {
-        if (0 <= opCode.extender.indexOf(extendersToRmv[idx])) {
-          removedAnExtender = true;
-          opCode.extender = opCode.extender.replace(extendersToRmv[idx], ``);
+
+      if (0 === extender.length) {
+        removedAnExtender = true;
+      } else  {
+        const extendersToRmv = [].concat(extender.toUpperCase());
+        for (let idx in extendersToRmv) {
+          if (0 <= opCode.extender.indexOf(extendersToRmv[idx])) {
+            removedAnExtender = true;
+            opCode.extender = opCode.extender.replace(extendersToRmv[idx], ``);
+          }
         }
       }
 
@@ -1581,12 +1614,19 @@ module.exports = {
 
     /** Adds the given op-code extender/array of extenders to the op-code */
     function addOpCodeExtender(opCode = {}, extender) {
-      const extendersToAdd = [].concat(extender);
       let addedAnExtender = false;
-      for (let idx in extendersToAdd) {
-        if (0 > opCode.extender.indexOf(extendersToAdd[idx])) {
-          addedAnExtender = true;
-          opCode.extender += extendersToAdd[idx];
+
+      // If no extender was given, simply rebuild the op-code output.
+      //  Otherwise, add the op-code to to the "list" of extenders.
+      if (0 === extender.length) {
+        addedAnExtender = true;
+      } else {
+        const extendersToAdd = [].concat(extender.toUpperCase());
+        for (let idx in extendersToAdd) {
+          if (0 > opCode.extender.indexOf(extendersToAdd[idx])) {
+            addedAnExtender = true;
+            opCode.extender += extendersToAdd[idx];
+          }
         }
       }
 

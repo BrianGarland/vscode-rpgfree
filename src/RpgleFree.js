@@ -425,38 +425,57 @@ module.exports = class RpgleFree {
       }
     }
 
-    /** Quotes the EXTNAME and EXTFLD values */
-    function quoteExtNameValue(line = ``, blockType = ``) {
+    /** Quotes name values */
+    function quoteNameValues(line = ``, blockType = ``) {
+      let quoteName = true;
+
       // This only applys to DS block types
-      if (blockType !== `DS`) {
+      if (blockType !== `DS` && (blockType !== `` || !/Dcl-.*DTAARA *\(/i.test(line))) {
         return line;
       }
 
-      // If we cannot find the EXTNAME/EXTFLD with an
-      //  value enclosed in parens, then do nothing.
-      const keywordParts = line.match(/^(.* (EXTNAME|EXTFLD) *?\()([^)]+)(\).*)$/i);
-      if (!keywordParts || keywordParts.length !== 5) {
+      // Turn off quoting if this is a DTAARA that used the
+      //  *VAR modifier.
+      if (/DTAARA *\([^\)]*\*VAR *:/i.test(line)) {
+        line = line.replace(/(DTAARA *\([^\)]*)\*VAR *:/i, '$1');
+        quoteName = false;
+      }
+
+      //  If we added the DtaAra(*AUTO) and the definition had a DtaAra(),
+      //  we now have two DtaAra keywords.  So, merge the two.
+      if (/DTAARA\(\*AUTO\).*DTAARA/i.test(line)) {
+        line = line.replace(/DTAARA\(\*AUTO\)/i, "".padEnd(13));
+        line = line.replace(/DTAARA *\( */i, `DtaAra(*AUTO: `);
+      }
+
+      // If we cannot find the DTAARA/EXTNAME/EXTFLD with a
+      //  value to be enclosed in parens, then do nothing.
+      const keywordParts = line.match(/^(.* (DTAARA|EXTNAME|EXTFLD) *?\((\*[^:]*: *)*)([^)]+)(\).*)$/i);
+      if (!keywordParts || keywordParts.length !== 6) {
         return line;
       }
 
       // If the value is already quoted, do nothing.
-      const extValue = keywordParts[3].trim();
+      let extValue = keywordParts[4].trim();
       if (extValue.substring(0, 1) === `'`) {
         return line;
       }
 
       // The EXTNAME supports the extname(file-name {: fromat-name} {*ALL|*INPUT|*OUTPUT|*KEY|*NULL})
       // We can only quote the file-name; all other parts are to remain unquoted.
-      let extOptions = ``, extName = extValue.toUpperCase();
+      // Likewise, the DTAARA keyword supports an optional usage parameter
+      let extOptions = ``, extName = extValue;
       const extValueParts = extValue.split(/^([^:]+?)(:.*)$/);
       if (extValueParts.length >= 2) {
-        extName = extValueParts[1].trim().toUpperCase();
+        extName = extValueParts[1].trim();
         // Force consistent spacing around the colon separator
         //  (that is no leading spaces, and 1 space after).
         extOptions = extValueParts[2].trim().replace(/ {0,}: {0,}\*/g, `: \*`).replace(/^:( *)(.*?)( *)(:.*)$/g, `: $2 $4`);
       }
-
-      return `${keywordParts[1]}'${extName}'${extOptions}${keywordParts[4]}`;
+      if (true === quoteName) {
+        extName = `'${extName.toUpperCase()}'`;
+      }
+      return `${keywordParts[1]}${extName}${extOptions}${keywordParts[5]}`;
     }
 
     /** Fixes the varying keyword by removing it and prepending Var to data type */
@@ -524,7 +543,7 @@ module.exports = class RpgleFree {
      */
     function postProcessKeyWords(line = ``, blockType = ``) {
       line = fixVaryingKeyword(line, blockType);
-      line = quoteExtNameValue(line, blockType);
+      line = quoteNameValues(line, blockType);
       return line;
     }
     
@@ -629,10 +648,12 @@ module.exports = class RpgleFree {
           index--;
           // ?? length--;
 
-          this.lines[index] = postProcessKeyWords(
-            this.lines[index],
-            result.blockType
-          );
+          // ?? Originally we were doing all post processing of keywords.
+          // ??  However, this caused DTAARA names defined with *VAR to be
+          // ??  doubled processed ... resulting in the *VAR variable name
+          // ??  being quoted.
+          // ?? this.lines[index] = postProcessKeyWords(this.lines[index], result.blockType);
+          this.lines[index] = fixVaryingKeyword(this.lines[index], result.blockType);
           break;
         }
 
@@ -659,11 +680,7 @@ module.exports = class RpgleFree {
 
           } else {
             this.lines[index] = `${ignoredColumns}${"".padEnd(spaces)}${result.value}`;
-            this.lines[index] = postProcessKeyWords(
-              this.lines[index],
-              result.blockType
-            );
-
+            this.lines[index] = postProcessKeyWords(this.lines[index], result.blockType);
             if (comment.trim() !== ``) {
               this.lines[index] += ` //${comment}`;
             }
