@@ -231,8 +231,12 @@ module.exports = class RpgleFree {
     let isCommentLine = false;
     let isDirectiveLine = false;
     let compileTimeTableLines = false;
+    let convertToFullyFree = false;
 
     length = this.lines.length;
+    if (0 < length) {
+      convertToFullyFree = `**free` === this.lines[0].trim().toLowerCase();
+    }
     for (index = 0; index < length; index++) {
       if (this.lines[index] === undefined) {
         continue;
@@ -240,18 +244,25 @@ module.exports = class RpgleFree {
 
       this.currentLine = index;
       line = ` ` + this.lines[index].padEnd(this.maxFixedFormatLineLength);
-
       comment = ``;
-      if (line.length > (this.maxFixedFormatLineLength + 1)) {
+      ignoredColumns = line.substring(1, 6) + `  `;
+      isDirectiveLine = line[7] === `/`;
+      isCommentLine = line[7] === `*` || 0 == line.trim().indexOf(`//`);
+
+      // If this is not a comment line, then split the fixed format end line comment
+      //  of into its own variable.  Note that we aded 1 space to the line, so we
+      //  need to use the max length + 1.
+      if (line.length > (this.maxFixedFormatLineLength + 1) && true !== isCommentLine) {
+        comment = line.substring((this.maxFixedFormatLineLength + 1))
         line = line.substring(0, (this.maxFixedFormatLineLength + 1));
-        comment = this.lines[index].substring(this.maxFixedFormatLineLength);
       }
 
-      ignoredColumns = line.substring(1, 6) + `  `;
-      // !! FOR NOW, IGNORE THE IGNORED COLUMNS ... do not attempt to keep the mod markers in the gutter positions 1-5.
-      ignoredColumns = "".padEnd(ignoredColumns.length);
-      isCommentLine = line[7] === `*` || 0 == line.trim().indexOf(`//`);
-      isDirectiveLine = line[7] === `/`;
+      // If we are converting to **FREE, then ignore the mod markers (gutter) in positions 1-5.
+      if (true === convertToFullyFree) {
+        ignoredColumns = "".padEnd(ignoredColumns.length);
+      }
+
+      // If this is a comment line, then basically strip out the specification type.
       if (isCommentLine || isDirectiveLine) {
         line = line.replace(/^(.{6})(.)(\*|\/)/, "$1 $3");
       }
