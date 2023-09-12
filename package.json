@@ -2,7 +2,7 @@
 	"name": "vscode-rpgfree",
 	"displayName": "RPGLE Free",
 	"description": "Visual Studio Code extension to convert fixed format RPGLE to free format",
-	"version": "0.0.26",
+	"version": "0.0.27-preview+20230908.2",
 	"keywords": [
 		"ibmi",
 		"rpgle",
@@ -26,10 +26,22 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:vscode-rpgfree.rpgleFree"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
+		"configuration": [
+			{
+				"title": "RPGLE Free",
+				"properties": {
+					"vscode-rpgfree.indent": {
+						"type": "number",
+						"default": 2,
+						"enum": [2, 3, 4, 5, 6, 7, 8, 9, 10],
+						"description": "Specifies the number of spaces to indent control blocks."
+					}
+				}
+			}
+		],
 		"commands": [
 			{
 				"command": "vscode-rpgfree.rpgleFree",

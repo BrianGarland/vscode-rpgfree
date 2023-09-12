@@ -1,13 +1,32 @@
-module.exports = {
-  Parse: function (input, indent, wasSub) {
-    let output = {
-      remove: false,
-      change: false,
-      value: ``,
+let convertedThisSpec = false;
 
+module.exports = {
+  init: function() {
+    convertedThisSpec = false;
+  },
+
+  initOutput: function() {
+    return {
+      arrayoutput: [],
       beforeSpaces: 0,
-      nextSpaces: 0
+      change: false,
+      nextSpaces: 0,
+      remove: false,
+      value: ``
     };
+  },
+
+  final: function(indent, wasSub, wasLIKEDS) {
+    let output = this.initOutput();
+    if (!convertedThisSpec) {
+      return output;
+    }
+
+    return output;
+  },
+
+  parse: function (input, indent, wasSub, wasLIKEDS) {
+    let output = this.initOutput();
 
     let name = input.substr(7, 10).trim(); //File name
     let type = input.substr(17, 1).toUpperCase(); // I, U, O, C
@@ -18,54 +37,63 @@ module.exports = {
     let device = input.substr(36, 7).toUpperCase().trim(); //device: DISK, WORKSTN
     let keywords = input.substr(44).trim();
 
-    output.value = `Dcl-F ` + name;
+    convertedThisSpec = true;
+
+    output.value = `Dcl-F ${name}`;
 
     switch (type) {
-    case `I`:
-      if (fileadd == 'A')
-        type = `*Input:*Output`;
-      else
-        type = `*Input`;
-      break;
-    case `U`:
-      type = `*Update:*Delete:*Output`;
-      break;
-    case `O`:
-      if (device != `PRINTER`)
-        type = `*Output`;
-      else
-        type = ``;
-      break;
-    case `C`:
-      if (device != `WORKSTN`)
-        type = `*INPUT:*OUTPUT`;
-      else
-        type = ``;
-      break;
+      case `I`:
+        if (fileadd === `A`) {
+          type = `*INPUT: *OUTPUT`;
+        } else {
+          type = `*INPUT`;
+        }
+        break;
+      case `U`:
+        type = `*UPDATE: *DELETE: *OUTPUT`;
+        break;
+      case `O`:
+        if (device !== `PRINTER`) {
+          type = `*OUTPUT`;
+        } else {
+          type = ``;
+        }
+        break;
+      case `C`:
+        if (device !== `WORKSTN`) {
+          type = `*INPUT: *OUTPUT`;
+        } else {
+          type = ``;
+        }
+        break;
 
-    default:
-      type = ``;
-      break;
+      default:
+        type = ``;
+        break;
     }
 
-    if (external != `E`) {
-      device = device + `(` + recordLength.trim() + `)`;
+    if (external !== `E`) {
+      device = `${device}(${recordLength.trim()})`;
     }
 
-    if (device != `DISK`)
+    if (device !== `DISK`) {
       output.value += ` ` + device;
+    }
 
-    if (type != ``)
+    if (type !== ``) {
       output.value += ` Usage(` + type + `)`;
+    }
 
-    if (field == `K`)
+    if (field === `K`) {
       output.value += ` Keyed`;
+    }
 
-    if (keywords != ``) {
-      if (name == ``)
+    if (keywords !== ``) {
+      if (name === ``) {
         output.aboveKeywords = keywords;
-      else
+      } else {
         output.value += ` ` + keywords;
+      }
     }
 
     if (output.value !== ``) {
