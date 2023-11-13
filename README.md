@@ -17,11 +17,11 @@ This is based on [rpgfreeweb](https://github.com/worksofliam/rpgfreeweb).
 
 ## How to use
 
-Highlight all or part of your source code and then right-click and use the "Convert to Free Format" option from the menu.
-
-A couple of caveats:
-1. Your highlight should start in position 1 of the line or that line will not convert.
-2. Your highlight should end after the end of line for the last line to be converted.
+Two options: 
+1. Highlight all or part of your source code and then right-click and use the "Convert to Free Format" option from the menu.  A couple of caveats:
+    1. Your highlight should start in position 1 of the line or that line will not convert.
+    2. Your highlight should end after the end of line for the last line to be converted.
+2. Use F1 and choose "Covert to Free Format" to convert the entire source.
 
 ## Contributors
 
@@ -29,6 +29,7 @@ A couple of caveats:
 * [@BrianGarland](https://github.com/BrianGarland)
 * [@DavidShears](https://github.com/DavidShears)
 * [@RoySpino](https://github.com/RoySpino)
+* [@stackmystack](https://github.com/stackmystack)
 
 ## Development
 
