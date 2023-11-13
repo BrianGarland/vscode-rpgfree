@@ -1,5 +1,6 @@
      C                   ADD       1             SOMEVAR0                                           
-     C                   ADD       1             SOMEVAR0             20                   C                   ADD       SOMEVAR1      SOMEVAR0                                           
+     C                   ADD       1             SOMEVAR0             20         
+     C                   ADD       SOMEVAR1      SOMEVAR0                                           
      C     SOMEVAR2      ADD       SOMEVAR1      SOMEVAR0                                           
                                                                                                     
      C                   DIV       1             SOMEVAR0                                           
