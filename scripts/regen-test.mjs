@@ -1,5 +1,5 @@
 import { indent, read, runDirs, write } from '../lib/testsuite.mjs';
-import RpgleFree from '../src/RpgleFree.js';
+import { RpgleFree } from '../src/RpgleFree.mjs';
 
 function regen(dir) {
   const input = read(dir);
