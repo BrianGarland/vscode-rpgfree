@@ -186,7 +186,7 @@ module.exports = class RpgleFree {
       this.currentLine = index;
       comment = ``;
       line = ` ` + this.lines[index].padEnd(80);
-      if (line.length > 81) {
+      if (line.length > 81 && line[7] !== `*` && line.slice(7,9) !== `//`) {
         line = line.substring(0, 81);
         comment = this.lines[index].substring(80);
       }
