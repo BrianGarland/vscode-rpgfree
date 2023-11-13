@@ -13,15 +13,15 @@
                                                                                                     
      C     *IN99         DOWEQ     *OFF                                                             
      C     SOMEVAR       ANDLE     1                                                                
-     C                   ADD       SOMEVAR       1                                                  
+     C                   ADD       SOMEVAR       I                                                  
      C                   ENDDO                                                                      
                                                                                                     
      C     *IN99         DOWLT     *OFF                                                             
      C     SOMEVAR       ANDLE     1                                                                
-     C                   ADD       SOMEVAR       1                                                  
+     C                   ADD       SOMEVAR       I                                                  
      C                   ENDDO                                                                      
                                                                                                     
      C     *IN99         DOWGT     *OFF                                                             
      C     SOMEVAR       ANDLE     1                                                                
-     C                   ADD       SOMEVAR       1                                                  
+     C                   ADD       SOMEVAR       I                                                  
      C                   ENDDO                                                                      

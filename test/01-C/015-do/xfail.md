@@ -15,5 +15,6 @@ The input gives this:
 
 ```
 
-It's obvious that the second form is screwed.
-I picked it from a private example I have, maybe I'm missing context?
+First loop should end with 'Endfor' instead of 'Enddo'
+
+Second loop: we need to make up a new loop counter variable 'For ? = 1 to SOMEVAR'

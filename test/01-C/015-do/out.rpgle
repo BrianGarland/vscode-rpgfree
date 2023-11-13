@@ -3,21 +3,21 @@
            *In70 = *On;
            I = I + 7;
          Endif;
-       Enddo;
+       Endfor;
                                                                                                     
-       For  =  to SOMEVAR;
+       For ?  = 1 to SOMEVAR;
          *In70 = *Off;
          SOMEVAR = SOMEVAR + 1;
        ENDDO;
                                                                                                     
        Dow *IN99 = *OFF AND SOMEVAR <= 1;
-         1 = 1 + SOMEVAR;
+         I = I + SOMEVAR;
        ENDDO;
                                                                                                     
        Dow *IN99 < *OFF AND SOMEVAR <= 1;
-         1 = 1 + SOMEVAR;
+         I = I + SOMEVAR;
        ENDDO;
                                                                                                     
        Dow *IN99 > *OFF AND SOMEVAR <= 1;
-         1 = 1 + SOMEVAR;
+         I = I + SOMEVAR;
        ENDDO;
