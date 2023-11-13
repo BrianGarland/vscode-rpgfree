@@ -183,9 +183,7 @@ module.exports = class RpgleFree {
     let index = 0;
     for (index = 0; index < length; index++) {
       if (this.lines[index] === undefined) continue;
-
       this.currentLine = index;
-
       comment = ``;
       line = ` ` + this.lines[index].padEnd(80);
       if (line.length > 81) {
@@ -381,5 +379,5 @@ module.exports = class RpgleFree {
     }
 
   }
-
+  
 }
