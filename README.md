@@ -29,3 +29,37 @@ A couple of caveats:
 * [@BrianGarland](https://github.com/BrianGarland)
 * [@DavidShears](https://github.com/DavidShears)
 * [@RoySpino](https://github.com/RoySpino)
+
+## Development
+
+See [Run from Local](#run-from-local), and make sure you have the following settings for VSCode:
+
+```json
+{
+    "files.trimTrailingWhitespace": true
+}
+```
+
+### Known Issues with NodeJS
+
+1. `Error: error:0308010C:digital envelope routines::unsupported`
+   The error message would look like:
+   ```
+   node:internal/crypto/hash:71
+   this[kHandle] = new _Hash(algorithm, xofLen);
+                   ^
+
+   Error: error:0308010C:digital envelope routines::unsupported
+     at new Hash (node:internal/crypto/hash:71:19)
+     at Object.createHash (node:crypto:140:10)
+     …
+   ```
+   Which is related to recent NodeJS versions and OpenSSL. It can be fixed by modifying `package.json`:
+   ```json
+   	"scripts": {
+      …
+      "webpack": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode development",
+      "webpack-dev": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode development --watch",
+      …
+    }
+   ```
