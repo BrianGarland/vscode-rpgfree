@@ -13,11 +13,12 @@ This is based on [rpgfreeweb](https://github.com/worksofliam/rpgfreeweb).
 
 1. clone repo
 2. `npm i`
-3. 'Run Extension' from vscode debug.
+3. `npm run test` to run the converter test suite
+4. 'Run Extension' from VS Code debugger for the extension.
 
 ## How to use
 
-Two options: 
+Two options:
 1. Highlight all or part of your source code and then right-click and use the "Convert to Free Format" option from the menu.  A couple of caveats:
     1. Your highlight should start in position 1 of the line or that line will not convert.
     2. Your highlight should end after the end of line for the last line to be converted.
