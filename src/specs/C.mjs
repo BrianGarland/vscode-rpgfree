@@ -156,7 +156,9 @@ export function Parse(input, indent, wasSub) {
         // result may containe a PLIST name
         if (result !== '') {
           if (lists[result]) {
-            output.value = `${factor2}(${lists[result].join(':')})`;
+            output.value = `${factor2}(${lists[result].join(':')})${factor2}`;
+            //output.value += `;\n       dcl-pr ${factor2} extpgm(${factor2})`;
+            //output.value += `;\n       End-pr`;
           }
         } else {
           output.remove = true;
