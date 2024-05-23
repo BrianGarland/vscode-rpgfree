@@ -548,23 +548,29 @@ export function Parse(input, indent, wasSub) {
       case 'SETOFF':
         if (ind1 !== '') {
           arrayoutput.push(`*In${ind1} = *Off;`);
+          output.change = true;
         }
         if (ind2 !== '') {
           arrayoutput.push(`*In${ind2} = *Off;`);
+          output.change = true;
         }
         if (ind3 !== '') {
           arrayoutput.push(`*In${ind3} = *Off;`);
+          output.change = true;
         }
         break;
       case 'SETON':
         if (ind1 !== '') {
           arrayoutput.push(`*In${ind1} = *On;`);
+          output.change = true;
         }
         if (ind2 !== '') {
           arrayoutput.push(`*In${ind2} = *On;`);
+          output.change = true;
         }
         if (ind3 !== '') {
           arrayoutput.push(`*In${ind3} = *On;`);
+          output.change = true;
         }
         break;
       case 'SORTA':
