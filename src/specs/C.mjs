@@ -152,19 +152,19 @@ export function Parse(input, indent, wasSub) {
         output.nextSpaces = indent;
         break;
       case 'CALL':
-        factor2 = factor2.substring(1, factor2.length - 1);
-        // result may containe a PLIST name
-        if (result !== '') {
-          if (lists[result]) {
-            output.value = `${factor2}(${lists[result].join(':')})`;
-          }
-        } else {
-          output.remove = true;
-          lastKey = factor2;
-          lists[lastKey] = [];
-          doingCALL = true;
-        }
-        break;
+      //factor2 = factor2.substring(1, factor2.length - 1);
+      // result may containe a PLIST name
+      //if (result !== '') {
+      //  if (lists[result]) {
+      //    output.value = `${factor2}(${lists[result].join(':')})`;
+      //  }
+      //} else {
+      //  output.remove = true;
+      //  lastKey = factor2;
+      //  lists[lastKey] = [];
+      //  doingCALL = true;
+      //}
+      //break;
       case 'CALLB':
       case 'CALLP':
         output.value = extended;
