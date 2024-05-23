@@ -86,7 +86,6 @@ export function Parse(input, indent, wasSub) {
         }
         break;
       case 'PARM':
-        break;
       case 'KFLD':
         //Handle var declaration
         if (doingENTRY) {
