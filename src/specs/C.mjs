@@ -156,13 +156,13 @@ export function Parse(input, indent, wasSub) {
         //result may containe a PLIST name
         if (result !== '') {
           if (lists[result]) {
-            output.value = `${factor2}(${lists[result].join(':')})`;
+            //output.value = `${factor2}(${lists[result].join(':')})`;
           }
         } else {
-          output.remove = true;
-          lastKey = factor2;
-          lists[lastKey] = [];
-          doingCALL = true;
+          //output.remove = true;
+          //lastKey = factor2;
+          //lists[lastKey] = [];
+          //doingCALL = true;
         }
         break;
       case 'CALLB':
