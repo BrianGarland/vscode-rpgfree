@@ -259,7 +259,7 @@ export function Parse(input, indent, wasSub, wasLIKEDS) {
         if (field === 'DS') {
           if (dsType === 'S') {
             keywords = `PSDS ${keywords}`;
-          } else if (dsType === 'U') {
+          } else if (dsType === 'U' && !keywords.includes('DTAARA')) {
             keywords = `DTAARA(*AUTO) ${keywords}`;
           }
         }
