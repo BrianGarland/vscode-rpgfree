@@ -600,19 +600,19 @@ export function Parse(input, indent, wasSub) {
             output.value = '';
           }
           else {
-            if (condition.ind !== '') {
-              arrayoutput.push(`If${condition.not ? ' NOT' : ''} *In${condition.ind};`);
-              arrayoutput.push(`  *In${ind3} = *On;`);
-              arrayoutput.push('Endif;');
-              output.value = '';
-            }
-            else {
-              arrayoutput.push(`*In${ind3} = *On;`);
-            }
+            arrayoutput.push(`*In${ind2} = *On;`);
           }
         }
         if (ind3 !== '') {
-          arrayoutput.push(`*In${ind3} = *On;`);
+          if (condition.ind !== '') {
+            arrayoutput.push(`If${condition.not ? ' NOT' : ''} *In${condition.ind};`);
+            arrayoutput.push(`  *In${ind3} = *On;`);
+            arrayoutput.push('Endif;');
+            output.value = '';
+          }
+          else {
+            arrayoutput.push(`*In${ind3} = *On;`);
+          }
         }
         break;
       case 'SORTA':
