@@ -1,4 +1,3 @@
-**FREE
 IF %error;
   *In60 = *On;
   *In62 = *On;

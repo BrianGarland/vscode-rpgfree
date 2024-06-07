@@ -1,4 +1,3 @@
-**FREE
 SELECT;
   WHEN VAR01 = '5' And VAR02 < '100';
     *In60 = *On;

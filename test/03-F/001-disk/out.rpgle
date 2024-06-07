@@ -1,4 +1,3 @@
-**FREE
 Dcl-F IFDISK Usage(*Input) Keyed;
 Dcl-F IFDISKREN Usage(*Input) Keyed RENAME(FLD1:FLD2);
 Dcl-F IFDISKPRE Usage(*Input) Keyed PREFIX(PRFX);

@@ -1,4 +1,3 @@
-**FREE
 CHARVAR = 'S';
 CHARVAR = *BLANKS;
 INTVAR = 0;
