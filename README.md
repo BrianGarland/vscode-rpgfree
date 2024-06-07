@@ -31,6 +31,7 @@ Two options:
 * [@DavidShears](https://github.com/DavidShears)
 * [@RoySpino](https://github.com/RoySpino)
 * [@stackmystack](https://github.com/stackmystack)
+* [@rg85](https://github.com/rg85)
 
 ## Development
 
