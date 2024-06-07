@@ -1,8 +1,8 @@
 **FREE
 If *InKG;
-    EXSR DEBLOQ;
+     EXSR DEBLOQ;
 Endif;
 If *InKG;
-    *InLR = *On;
-EndIf;
+     *InLR = *On;
+Endif;
      C   LR              GOTO      FIN
