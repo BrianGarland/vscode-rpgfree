@@ -1,3 +1,3 @@
        BEGSR SUBROU1;
-         EXTPGM01($PARM01:$PARM02);
-       ENDSR;
+       EXTPGM01($PARM01:$PARM02);
+         ENDSR;

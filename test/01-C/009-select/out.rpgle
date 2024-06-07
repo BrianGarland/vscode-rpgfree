@@ -2,7 +2,7 @@
          WHEN VAR01 = '5' And VAR02 < '100';
            *In60 = *On;
        ENDSL;
-                                                                                                                      
+                                                                                                                        
        SELECT;
          WHEN VAR01 = '5' And VAR02 < '100';
            *In60 = *On;
@@ -11,7 +11,7 @@
          WHEN VAR01 = '9' And VAR02 <> '100';
            *In62 = *On;
        ENDSL;
-                                                                                                                      
+                                                                                                                        
        SELECT;
          WHEN VAR01 = '5' And VAR02 < '100';
            *In60 = *On;
@@ -20,7 +20,7 @@
          OTHER;
            *In62 = *On;
        ENDSL;
-                                                                                                                      
+                                                                                                                        
        SELECT;
          When VAR01 = '1';
            *In60 = *On;

@@ -547,72 +547,24 @@ export function Parse(input, indent, wasSub) {
         break;
       case 'SETOFF':
         if (ind1 !== '') {
-          if (condition.ind !== '') {
-            arrayoutput.push(`If${condition.not ? ' NOT' : ''} *In${condition.ind};`);
-            arrayoutput.push(`  *In${ind1} = *Off;`);
-            arrayoutput.push('Endif;');
-            output.value = '';
-          }
-          else {
-            arrayoutput.push(`*In${ind1} = *Off;`);
-          }
+          arrayoutput.push(`*In${ind1} = *Off;`);
         }
         if (ind2 !== '') {
-          if (condition.ind !== '') {
-            arrayoutput.push(`If${condition.not ? ' NOT' : ''} *In${condition.ind};`);
-            arrayoutput.push(`  *In${ind2} = *Off;`);
-            arrayoutput.push('Endif;');
-            output.value = '';
-          }
-          else {
-            arrayoutput.push(`*In${ind2} = *Off;`);
-          }
+          arrayoutput.push(`*In${ind2} = *Off;`);
         }
         if (ind3 !== '') {
-          if (condition.ind !== '') {
-            arrayoutput.push(`If${condition.not ? ' NOT' : ''} *In${condition.ind};`);
-            arrayoutput.push(`  *In${ind3} = *Off;`);
-            arrayoutput.push('Endif;');
-            output.value = '';
-          }
-          else {
-            arrayoutput.push(`*In${ind3} = *Off;`);
-          }
+          arrayoutput.push(`*In${ind3} = *Off;`);
         }
         break;
       case 'SETON':
         if (ind1 !== '') {
-          if (condition.ind !== '') {
-            arrayoutput.push(`If${condition.not ? ' NOT' : ''} *In${condition.ind};`);
-            arrayoutput.push(`  *In${ind1} = *On;`);
-            arrayoutput.push('Endif;');
-            output.value = '';
-          }
-          else {
-            arrayoutput.push(`*In${ind1} = *On;`);
-          }
+          arrayoutput.push(`*In${ind1} = *On;`);
         }
         if (ind2 !== '') {
-          if (condition.ind !== '') {
-            arrayoutput.push(`If${condition.not ? ' NOT' : ''} *In${condition.ind};`);
-            arrayoutput.push(`  *In${ind2} = *On;`);
-            arrayoutput.push('Endif;');
-            output.value = '';
-          }
-          else {
-            arrayoutput.push(`*In${ind2} = *On;`);
-          }
+          arrayoutput.push(`*In${ind2} = *On;`);
         }
         if (ind3 !== '') {
-          if (condition.ind !== '') {
-            arrayoutput.push(`If${condition.not ? ' NOT' : ''} *In${condition.ind};`);
-            arrayoutput.push(`  *In${ind3} = *On;`);
-            arrayoutput.push('Endif;');
-            output.value = '';
-          }
-          else {
-            arrayoutput.push(`*In${ind3} = *On;`);
-          }
+          arrayoutput.push(`*In${ind3} = *On;`);
         }
         break;
       case 'SORTA':
