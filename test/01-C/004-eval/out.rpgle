@@ -1,4 +1,5 @@
-       CHARVAR = 'S';
-       CHARVAR = *BLANKS;
-       INTVAR = 0;
-       $DATE = %CHAR(%DATE(DATEVAR:*dmy/));
+**FREE
+CHARVAR = 'S';
+CHARVAR = *BLANKS;
+INTVAR = 0;
+$DATE = %CHAR(%DATE(DATEVAR:*dmy/));
