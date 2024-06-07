@@ -2,7 +2,7 @@
   "files.trimTrailingWhitespace": true,
   "editor.formatOnSave": true,
   "[rpgle]": {
-    "files.trimTrailingWhitespace": false,
+    "files.trimTrailingWhitespace": true,
     "editor.formatOnSave": false,
   }
 }
