@@ -98,8 +98,12 @@ export function Parse(input, indent, wasSub) {
         output.value = `${opcode} ${factor1} ${factor2}`;
         break;
       case 'ADD':
-        if (factor1) {
+        if (factor1 && extender !== '') {
+          output.value = `EVAL(${extender}) ${result} = ${factor1} + ${factor2}`;
+        } else if (factor1) {
           output.value = `${result} = ${factor1} + ${factor2}`;
+        } else if (extender !== '') {
+          output.value = `EVAL(${extender}) ${result} = ${result} + ${factor2}`;
         } else {
           output.value = `${result} = ${result} + ${factor2}`;
         }
@@ -212,7 +216,15 @@ export function Parse(input, indent, wasSub) {
         }
         break;
       case 'DIV':
-        output.value = `${result} = ${factor1} / ${factor2}`;
+        if (factor1 && extender !== '') {
+          output.value = `EVAL(${extender}) ${result} = ${factor1} / ${factor2}`;
+        } else if (factor1) {
+          output.value = `${result} = ${factor1} / ${factor2}`;
+        } else if (extender !== '') {
+          output.value = `EVAL(${extender}) ${result} = ${result} / ${factor2}`;
+        } else {
+          output.value = `${result} = ${result} / ${factor2}`;
+        }
         break;
       case 'DO':
         if (condition.ind !== '') {
@@ -341,7 +353,11 @@ export function Parse(input, indent, wasSub) {
         output.value = opcode;
         break;
       case 'EVAL':
-        output.value = extended;
+        if (extender !== '') {
+          output.value = `${opcode} ${extended}`;
+        } else {
+          output.value = extended;
+        }
         break;
       case 'EVALR':
         output.value = `${opcode} ${extended}`;
@@ -435,7 +451,15 @@ export function Parse(input, indent, wasSub) {
         output.ignore = true;
         break;
       case 'MULT':
-        output.value = `${result} = ${factor1} * ${factor2}`;
+        if (factor1 && extender !== '') {
+          output.value = `EVAL(${extender}) ${result} = ${factor1} * ${factor2}`;
+        } else if (factor1) {
+          output.value = `${result} = ${factor1} * ${factor2}`;
+        } else if (extender !== '') {
+          output.value = `EVAL(${extender}) ${result} = ${result} * ${factor2}`;
+        } else {
+          output.value = `${result} = ${result} * ${factor2}`;
+        }
         break;
       case 'ON-ERROR':
         output.beforeSpaces = -indent;
@@ -619,11 +643,19 @@ export function Parse(input, indent, wasSub) {
         output.value = `${opcode} ${extended}`;
         break;
       case 'SQRT':
-        output.value = `${result} = %SQRT(${factor2})`;
+        if (extender !== '') {
+          output.value = `EVAL(${extender}) ${result} = %SQRT(${factor2})`;
+        } else {
+          output.value = `${result} = %SQRT(${factor2})`;
+        }
         break;
       case 'SUB':
-        if (factor1) {
-          output.value = `${result}  = ${factor1} - ${factor2}`;
+        if (factor1 && extender !== '') {
+          output.value = `EVAL(${extender}) ${result} = ${factor1} - ${factor2}`;
+        } else if (factor1) {
+          output.value = `${result} = ${factor1} - ${factor2}`;
+        } else if (extender !== '') {
+          output.value = `EVAL(${extender}) ${result} = ${result} - ${factor2}`;
         } else {
           output.value = `${result} = ${result} - ${factor2}`;
         }
@@ -723,10 +755,18 @@ export function Parse(input, indent, wasSub) {
         output.value = `${result} = %XLATE(${factor1}:${factor2})`;
         break;
       case 'Z-ADD':
-        output.value = `${result} = ${factor2}`;
+        if (extender !== '') {
+          output.value = `EVAL(${extender}) ${result} = ${factor2}`;
+        } else {
+          output.value = `${result} = ${factor2}`;
+        }
         break;
       case 'Z-SUB':
-        output.value = `${result} = -${factor2}`;
+        if (extender !== '') {
+          output.value = `EVAL(${extender}) ${result} = -${factor2}`;
+        } else {
+          output.value = `${result} = -${factor2}`;
+        }
         break;
 
       default:
