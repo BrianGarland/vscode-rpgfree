@@ -264,7 +264,9 @@ export class RpgleFree {
       if (specs[spec] !== undefined) {
         result = specs[spec](line, this.indent, wasSub, wasLIKEDS);
 
-        if (result.isSub === true) {
+        if (spec === 'H') {
+          wasSub = result.isSub;
+        } else if (result.isSub === true) {
           if (result.isHead === true && wasSub && !wasLIKEDS) {
             endBlock(this.lines, this.indent);
           }

@@ -3,16 +3,31 @@ export function Parse(input, indent, wasSub) {
     remove: false,
     change: false,
     value: '',
-
     beforeSpaces: 0,
-    nextSpaces: 0
+    nextSpaces: 0,
+    isSub: false
   };
-  const keywords = input.substr(7);
 
-  output.value = `Ctl-Opt ${keywords.trim()}`;
+  let keywords = input.substr(7).trim();
+
+  if (keywords.endsWith('+')) {
+    output.isSub = true;
+  }
+
+  if (wasSub) {
+    output.value = `        ${keywords}`;
+  } else {
+    output.value = `Ctl-Opt ${keywords}`;
+  }
+
   if (output.value !== '') {
     output.change = true;
-    output.value = `${output.value.trimRight()};`;
+    if (!output.isSub) {
+      output.value = `${output.value.trimRight()};`;
+    } else {
+      output.value = `${output.value.trimRight()}`;
+    }
   }
+
   return output;
 }
