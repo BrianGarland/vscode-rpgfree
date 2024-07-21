@@ -15,7 +15,7 @@ export function Parse(input, indent, wasSub) {
   }
 
   if (wasSub) {
-    output.value = `        ${keywords}`;
+    output.value = `${keywords}`;
   } else {
     output.value = `Ctl-Opt ${keywords}`;
   }
