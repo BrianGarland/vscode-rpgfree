@@ -1,0 +1,6 @@
+       BEGSR GETEMP;
+
+         PGM1(PARM1:PARM2:PARM3);
+
+       PGM2(PARM4:PARM5:PARM6);
+         ENDSR;

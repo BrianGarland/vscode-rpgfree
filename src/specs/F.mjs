@@ -10,12 +10,19 @@ export function Parse(input, indent, wasSub) {
 
   const name = input.substring(7, 17).trim(); //File name
   let type = input.substring(17, 18).toUpperCase(); // I, U, O, C
+  let designation = input.substring(18, 19).toUpperCase(); // P, S, R, T, F, blank
   const fileadd = input.substring(20, 21).toUpperCase(); // A
   const external = input.substring(22, 23).toUpperCase(); // F, E
   const recordLength = input.substring(23, 28).toUpperCase();
   const field = input.substring(34, 35).toUpperCase(); //KEYED
   let device = input.substring(36, 43).toUpperCase().trim(); //device: DISK, WORKSTN
   const keywords = input.substring(44).trim();
+
+  // If a primary or secondary file, then just skip it.
+  if (designation === 'P' || designation === 'S') {
+    output.ignore = true;
+    return output;
+  }
 
   output.value = `Dcl-F ${name}`;
 

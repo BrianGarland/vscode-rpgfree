@@ -318,6 +318,10 @@ export class RpgleFree {
               index--;
               length++;
             }
+            if (result.arrayoutput) {
+              doArrayOutput(this.lines, result.arrayoutput);
+              index--;
+            }
             break;
 
           case result.change:
@@ -325,19 +329,7 @@ export class RpgleFree {
           // no break, need default logic too
           default:
             if (result.arrayoutput) {
-              this.lines.splice(index, 1);
-              for (let y in result.arrayoutput) {
-                result.arrayoutput[y] = indentLine(result.arrayoutput[y]);
-
-                this.lines.splice(index, 0, result.arrayoutput[y]);
-                //result.arrayoutput.pop();
-
-                index++;
-                length++;
-              }
-              while (result.arrayoutput.length > 0) {
-                result.arrayoutput.pop();
-              }
+              doArrayOutput(this.lines, result.arrayoutput);
               index--;
             } else {
               this.lines[index] = indentLine(result.value);
@@ -359,13 +351,21 @@ export class RpgleFree {
 
     // catch any held info incase the last line was not a "spec"
     if (result.arrayoutput) {
-      this.lines.splice(index, 1);
-      for (let y in result.arrayoutput) {
-        result.arrayoutput[y] = indentLine(result.arrayoutput[y]);
-        this.lines.splice(index, 0, result.arrayoutput[y]);
+      doArrayOutput(this.lines, result.arrayoutput);
+    }
+
+    function doArrayOutput(lines, arrayOutput) {
+      lines.splice(index, 1);
+      for (let y in arrayOutput) {
+        arrayOutput[y] = indentLine(arrayOutput[y]);
+        lines.splice(index, 0, arrayOutput[y]);
         index++;
         length++;
       }
+      while (arrayOutput.length > 0) {
+        arrayOutput.pop();
+      }
+
     }
 
     function endBlock(lines, indent) {
